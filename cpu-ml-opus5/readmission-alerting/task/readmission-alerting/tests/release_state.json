@@ -1,0 +1,29 @@
+{
+  "dataset": {
+    "path": "data/encounters.csv",
+    "sha256": "eb139e41034abbb609f19931d8b690a7e940a95c4ab391dcc06a26c1bee1e205"
+  },
+  "design_matrix": {
+    "n_rows": 10845,
+    "shape": [
+      10845,
+      33
+    ],
+    "sha256": "0f974935a06bc1a2ba767237bf855578dc893d2f5bcdb9c5f5b873b767f31a35"
+  },
+  "eval_summary": {
+    "n_rows": 10845,
+    "report": {
+      "score": 0.9467957584140156,
+      "fold_scores": [
+        0.9529737206085753,
+        0.9515905947441217,
+        0.9428307976025818,
+        0.9437528815122176,
+        0.9428307976025818
+      ],
+      "n_splits": 5,
+      "metric": "accuracy"
+    }
+  }
+}

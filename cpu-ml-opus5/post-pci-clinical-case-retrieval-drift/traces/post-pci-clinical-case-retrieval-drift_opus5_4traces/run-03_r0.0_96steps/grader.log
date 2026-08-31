@@ -1,0 +1,21 @@
+Final score: 0.0
+{
+  "accepted_actions": 23,
+  "authoritative_state_ok": false,
+  "forced_recovery_ok": true,
+  "gate_reason": "missing_gate_progress:22/27",
+  "gate_walk_ok": false,
+  "recovery_reason": "ok",
+  "strict_pass": false,
+  "terminal": {
+    "healthy": false,
+    "isolation_checks": {
+      "hidden_scenarios_denied": true,
+      "reference_import_denied": true
+    },
+    "reason": "environment_terminal_not_submitted"
+  },
+  "terminal_correct": false,
+  "terminal_reason": "environment_terminal_not_submitted",
+  "total_receipts": 37
+}

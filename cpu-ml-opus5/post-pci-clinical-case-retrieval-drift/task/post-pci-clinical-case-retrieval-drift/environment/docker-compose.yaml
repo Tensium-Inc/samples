@@ -1,0 +1,13 @@
+services:
+  main:
+    entrypoint:
+      - /usr/bin/tini
+      - --
+      - /usr/local/bin/task-entrypoint
+    command: ["sh", "-c", "sleep infinity"]
+    healthcheck:
+      test: ["CMD-SHELL", "test -S /run/post_pci_retrieval.sock"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+      start_period: 2s

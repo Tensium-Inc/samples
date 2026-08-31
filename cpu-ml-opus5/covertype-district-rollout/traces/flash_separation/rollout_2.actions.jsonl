@@ -1,0 +1,14 @@
+{"accepted": true, "detail": {"what": "inspect"}, "op": "observe", "ts": "2026-08-11T13:33:40Z"}
+{"accepted": true, "detail": {"what": "profile"}, "op": "observe", "ts": "2026-08-11T13:33:57Z"}
+{"accepted": true, "detail": {"what": "sample_records"}, "op": "observe", "ts": "2026-08-11T13:34:09Z"}
+{"accepted": true, "detail": {"fingerprint": "032ce0e78da4a65e"}, "op": "reproduce", "ts": "2026-08-11T13:38:27Z"}
+{"accepted": true, "detail": {"fingerprint": "dd441bcd3d566c7a", "has_model": true, "model_bytes": 6534037, "skipped_entries": []}, "op": "deploy", "ts": "2026-08-11T13:41:26Z"}
+{"accepted": true, "detail": {"clean": false, "fingerprint": "dd441bcd3d566c7a", "phase": 1}, "op": "validate", "ts": "2026-08-11T13:41:32Z"}
+{"accepted": false, "detail": {"reason": "nothing to diagnose; serving is not in a failed state"}, "op": "diagnostics.read", "ts": "2026-08-11T13:41:37Z"}
+{"accepted": true, "detail": {"fingerprint": "10bb84f21e22ac9e", "has_model": true, "model_bytes": 6534203, "skipped_entries": []}, "op": "deploy", "ts": "2026-08-11T13:43:24Z"}
+{"accepted": false, "detail": {"failure": "E_SERVE_412"}, "op": "validate", "ts": "2026-08-11T13:43:29Z"}
+{"accepted": true, "detail": {"failure": "E_SERVE_412"}, "op": "diagnostics.read", "ts": "2026-08-11T13:43:34Z"}
+{"accepted": true, "detail": {"failure": "E_SERVE_412", "family": "cache_rebuild", "matched": true}, "op": "recovery.apply", "ts": "2026-08-11T13:43:40Z"}
+{"accepted": true, "detail": {"clean": false, "fingerprint": "10bb84f21e22ac9e", "phase": 2}, "op": "validate", "ts": "2026-08-11T13:43:46Z"}
+{"accepted": true, "detail": {"fingerprint": "92a418f714c2fed2", "has_model": true, "model_bytes": 6534037, "skipped_entries": []}, "op": "deploy", "ts": "2026-08-11T14:02:48Z"}
+{"accepted": true, "detail": {"clean": false, "fingerprint": "92a418f714c2fed2", "phase": 2}, "op": "validate", "ts": "2026-08-11T14:02:56Z"}

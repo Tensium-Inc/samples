@@ -1,0 +1,12 @@
+Final score: 0.0
+{
+  "reward": 0.0,
+  "gate_walk_ok": false,
+  "depth_ok": true,
+  "forced_recovery_ok": true,
+  "terminal": {
+    "healthy": false,
+    "reason": "gated_release_incomplete"
+  },
+  "n_actions": 186
+}

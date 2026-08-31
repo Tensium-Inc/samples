@@ -1,0 +1,22 @@
+schema_version = "1.1"
+
+[task]
+name = "cpu-ml-engineering/asof-feature-leakage"
+description = "A repeat-purchase backtest reports healthy numbers while production ranking is untrustworthy; drive the gated ops loop to find and fix the as-of attribution defect and freeze a correct terminal."
+keywords = ["hud", "cpu-ml-engineering", "long-horizon", "gated-ops"]
+
+[verifier]
+timeout_sec = 1800.0
+user = "root"
+
+[agent]
+timeout_sec = 7200.0
+user = "ubuntu"
+
+[environment]
+build_timeout_sec = 3600.0
+cpus = 4
+memory_mb = 8192
+storage_mb = 10240
+gpus = 0
+allow_internet = false

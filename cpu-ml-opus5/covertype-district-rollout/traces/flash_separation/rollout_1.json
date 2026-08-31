@@ -1,0 +1,52 @@
+Final score: 0.4
+{
+  "reward": 0.4,
+  "info": {
+    "strict_pass": false,
+    "terminal_correct": false,
+    "gate_walk_ok": false,
+    "forced_recovery_ok": true,
+    "recoveries": {
+      "E_SERVE_412": true
+    },
+    "depth_ok": false,
+    "depth": {
+      "accepted": 20,
+      "observations": 3
+    },
+    "partial_components": {
+      "started": 0.05,
+      "recovered_E_SERVE_412": 0.2,
+      "moved_a_class": 0.15
+    },
+    "walk_seen": [
+      "reproduce",
+      "deploy",
+      "diagnostics.read",
+      "recovery.apply",
+      "validate",
+      "promote",
+      "canary.start",
+      "canary.read",
+      "cutover.commit"
+    ],
+    "required_walk": [
+      "reproduce",
+      "deploy",
+      "diagnostics.read",
+      "recovery.apply",
+      "validate",
+      "promote",
+      "canary.start",
+      "canary.read",
+      "cutover.commit",
+      "submit"
+    ],
+    "accepted_actions": 20,
+    "rejected_actions": 3,
+    "reasons": [
+      "no terminal was frozen (the run never reached `submit`)",
+      "3 observation actions < 4"
+    ]
+  }
+}

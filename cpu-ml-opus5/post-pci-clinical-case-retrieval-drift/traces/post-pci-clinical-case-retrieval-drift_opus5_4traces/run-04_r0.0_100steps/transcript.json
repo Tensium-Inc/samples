@@ -1,0 +1,1950 @@
+[
+  {
+    "role": "system",
+    "content": "You are taking over a live retrieval incident from the clinical review team.\n\nThe service supports a pre-outcome review of hypotension after PCI. It still returns twelve cases that look reasonable, which is why this problem escaped the usual smoke checks. The result is nevertheless wrong in production. The files that landed in storage are not exactly the population approved for release, a displayed PMCID is not always the serving identity, and the panel changes under ordinary request and inventory variations.\n\nPlease repair the service and take the incident all the way through submission. I need a working terminal state, not a written report.\n\nEverything you need is in `/workspace/target/`. The editable Python package is under `src/`. The corpus and incident material are under `data/`, including the PDF, Word handoff, HTML contract, JSON and CSV records, source manifest, and release registry. There is no internet access. You may inspect files, write small experiments, and run the candidate as often as useful.\n\nThe public retrieval command is:\n\n```bash\npython3 -m src.cli --artifact-root data --request data/query_facets.json\n```\n\nThe operations service is `env_cli.py`. It remembers what has already happened, so follow the incident in order. If you skip a step, the service will reject it.\n\nStart by collecting the six observations below. Do not edit the candidate until you understand what the landing data, release data, query, and current output are telling you.\n\n```bash\npython3 env_cli.py inspect.sources\npython3 env_cli.py inspect.schema\npython3 env_cli.py audit.query\npython3 env_cli.py profile.corpus\npython3 env_cli.py sample.records\npython3 env_cli.py test.visible\n```\n\nAfter that, reproduce the incident, deploy the current candidate, and inspect the forced runtime failure:\n\n```bash\npython3 env_cli.py reproduce\npython3 env_cli.py deploy\npython3 env_cli.py validate.runtime\npython3 env_cli.py diagnostics.read\n```\n\nUse the diagnosed family in the recovery command:\n\n```bash\npython3 env_cli.py recovery.apply --family <diagnosed-family>\npython3 env_cli.py validate.runtime\n```\n\nChoose the recovery family carefully. A wrong recovery locks the incident and cannot be undone.\n\nOnce runtime health is restored, gather the release evidence in this order:\n\n```bash\npython3 env_cli.py audit.provenance\npython3 env_cli.py audit.lexical\npython3 env_cli.py audit.fusion\n```\n\nNow repair `src/`. The evidence from these audits is the release authority. Do not assume that a familiar raw-similarity retriever is correct simply because its public results look plausible. When the population, canonical identity, eligible text, within-domain ranking, and fusion behavior agree with the evidence, commit that version:\n\n```bash\npython3 env_cli.py deploy.ranker\npython3 env_cli.py validate.ranker\n```\n\nOnly a clean ranker validation opens the panel-allocation evidence:\n\n```bash\npython3 env_cli.py audit.balance\n```\n\nRead that receipt as observed behavior, not as pseudocode. Infer the request-dependent family cycle from the normalized request evidence, byte totals, request sizes, and emitted prefixes. The allocator must remain balanced when the requested panel size changes.\n\nBefore the final deployment, you have exactly two shadow checks. Use each probe once, in either order:\n\n```bash\npython3 env_cli.py shadow.challenge --probe allocator\npython3 env_cli.py shadow.challenge --probe provenance\n```\n\nEach check gives only a stable or drift result, a rough mismatch size, and the affected dimension. It will not reveal the expected PMCIDs. You may edit `src/` between the two checks if the first result changes your diagnosis. Repeating a probe is rejected.\n\nTreat validation calls as commitments. The whole incident has a budget of four: two runtime validations, one ranker validation, and one final validation. There is no spare semantic retry. A dirty semantic result may route the workflow back to deployment, but the validation budget will already be exhausted.\n\nWhen you are satisfied that the implementation follows the release behavior, freeze the final candidate and complete the remaining operations:\n\n```bash\npython3 env_cli.py deploy.final\npython3 env_cli.py validate.final\npython3 env_cli.py shadow.replay\npython3 env_cli.py cutover.check\npython3 env_cli.py cutover\npython3 env_cli.py promote\npython3 env_cli.py submit\n```\n\nThe visible smoke test is only a basic sanity check. The released candidate must also survive realistic variations: query paraphrases, different request sizes, reordered manifest entries, rewritten post-adjudication or display metadata, unlisted landing-file noise, and serving projections where the stable `record_key` remains but a landing display PMCID does not. Panel membership, order, scores, population counts, and authoritative incident state all matter.\n\nDo not try to replace the workflow with a one-shot code drop or a claimed result file. The service records the real trajectory. Work from the evidence, make deliberate commitments, and leave the incident in the submitted state.\n\n\n---\nYOU ARE RUNNING IN A CONTAINER via a harness. Tools:\n  bash(cmd)               - run a command in your working directory\n  write_file(path,content)- write a file (relative paths -> working dir)\n  finish()                - end the episode; the grader then runs\nThe filesystem persists across calls; each bash call is a fresh shell. Do the work, then call finish(). If you stop calling tools, the episode ends and grading runs."
+  },
+  {
+    "role": "user",
+    "content": "Begin. Complete the task, then call finish()."
+  },
+  {
+    "role": "assistant",
+    "content": "I'll start by exploring the workspace.",
+    "tool_calls": [
+      {
+        "id": "toolu_01Wh38BBmJXk1PQ23V5MiaPD",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && ls -la && find . -type f | head -100\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01Wh38BBmJXk1PQ23V5MiaPD",
+    "name": "bash",
+    "content": "total 44\ndrwxr-xr-x 1 ubuntu ubuntu 4096 Aug 18 13:13 .\ndrwxr-xr-x 1 root   root   4096 Aug 18 13:13 ..\n-rw-r--r-- 1 ubuntu ubuntu 1234 Aug 18 13:12 README.md\ndrwxr-xr-x 1 ubuntu ubuntu 4096 Aug 18 13:12 data\n-rwxr-xr-x 1 ubuntu ubuntu 3134 Aug 18 13:12 env_cli.py\ndrwxr-xr-x 1 ubuntu ubuntu 4096 Aug 18 13:12 scripts\ndrwxr-xr-x 1 ubuntu ubuntu 4096 Aug 18 13:12 src\ndrwxr-xr-x 1 ubuntu ubuntu 4096 Aug 18 13:12 tests\n./src/__init__.py\n./src/ranker.py\n./src/text_views.py\n./src/artifact_loader.py\n./src/cli.py\n./data/operations_handoff.docx\n./data/cases/systemic_cases.jsonl\n./data/cases/vascular_cases.jsonl\n./data/cases/systemic_cases(1).jsonl\n./data/cases/cardiac_cases.jsonl\n./data/retrieval_contract.html\n./data/source_manifest.json\n./data/patient_case.pdf\n./data/query_facets.json\n./data/DATA_CARD.md\n./data/corpus_profile.csv\n./data/release_registry.jsonl\n./tests/__init__.py\n./tests/test_visible.py\n./README.md\n./env_cli.py\n./scripts/run_retrieval.py"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01GBCZdE5zkdGzTzgLbGE2U8",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && cat README.md && cat env_cli.py && cat data/DATA_CARD.md\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01GBCZdE5zkdGzTzgLbGE2U8",
+    "name": "bash",
+    "content": "# Clinical retrieval incident workspace\n\nThis is the complete editable incident workspace. The candidate implementation is in `src/`, the public runner is `scripts/run_retrieval.py`, and the coarse visible smoke is `tests/test_visible.py`.\n\n`data/` contains the real PMC case corpus plus the pre-outcome index case and operational artifacts in PDF, Word, HTML, JSON, and CSV formats. The landing directory intentionally contains one unlisted duplicate delivery file. The release population and the serving-time evidence boundary must be established from the incident materials and broker observations rather than guessed from file names.\n\nThe gated audits release behavioral evidence only. Static artifacts intentionally do not contain the exact request-phase or canonical identity-join implementation. Local experiments against the real corpus are allowed, but the full hidden terminal is not offline-verifiable. Two distinct, rate-limited shadow challenges provide coarse drift feedback before final deployment; their candidate subprocesses cannot write files or use the network.\n\nDo not create a replacement score, receipt, or terminal file. Deployment snapshots and the final terminal are owned and recomputed by the environment.\n#!/usr/bin/env python3\n\"\"\"Thin client for the environment-owned clinical retrieval operations service.\"\"\"\nfrom __future__ import annotations\n\nimport argparse\nimport json\nimport os\nimport socket\nimport sys\nfrom pathlib import Path\n\nOPS = [\n    \"inspect.sources\", \"inspect.schema\", \"audit.query\", \"profile.corpus\",\n    \"sample.records\", \"test.visible\", \"reproduce\", \"deploy\", \"validate.runtime\",\n    \"diagnostics.read\", \"recovery.apply\", \"audit.provenance\", \"audit.lexical\",\n    \"audit.fusion\", \"deploy.ranker\", \"validate.ranker\", \"audit.balance\",\n    \"deploy.final\", \"validate.final\", \"shadow.challenge\", \"shadow.replay\",\n    \"cutover.check\", \"cutover\", \"promote\", \"submit\", \"status\",\n]\n\n\ndef call(payload: dict) -> dict:\n    tcp_port = os.environ.get(\"TASK_TCP_PORT\")\n    if tcp_port:\n        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client:\n            client.settimeout(180)\n            client.connect((\"127.0.0.1\", int(tcp_port)))\n            client.sendall(json.dumps(payload, separators=(\",\", \":\")).encode() + b\"\\n\")\n            chunks = bytearray()\n            while True:\n                block = client.recv(65536)\n                if not block: break\n                chunks.extend(block)\n                if b\"\\n\" in block: break\n        if not chunks: raise RuntimeError(\"operations service returned an empty response\")\n        return json.loads(bytes(chunks).splitlines()[0])\n    socket_path = Path(os.environ.get(\"TASK_SOCKET\", \"/run/post_pci_retrieval.sock\"))\n    if not socket_path.exists():\n        raise RuntimeError(f\"operations service unavailable at {socket_path}\")\n    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:\n        client.settimeout(180)\n        client.connect(str(socket_path))\n        client.sendall(json.dumps(payload, separators=(\",\", \":\")).encode() + b\"\\n\")\n        chunks = bytearray()\n        while True:\n            block = client.recv(65536)\n            if not block:\n                break\n            chunks.extend(block)\n            if b\"\\n\" in block:\n                break\n    if not chunks:\n        raise RuntimeError(\"operations service returned an empty response\")\n    return json.loads(bytes(chunks).splitlines()[0])\n\n\ndef main() -> int:\n    parser = argparse.ArgumentParser(description=\"Drive the gated retrieval incident\")\n    parser.add_argument(\"op\", choices=OPS)\n    parser.add_argument(\"--family\", default=\"\")\n    parser.add_argument(\"--probe\", choices=[\"allocator\", \"provenance\"], default=\"\")\n    args = parser.parse_args()\n    if args.op == \"recovery.apply\" and not args.family:\n        parser.error(\"recovery.apply requires --family\")\n    if args.op == \"shadow.challenge\" and not args.probe:\n        parser.error(\"shadow.challenge requires --probe allocator|provenance\")\n    try:\n        response = call({\"op\": args.op, \"family\": args.family, \"probe\": args.probe})\n    except Exception as exc:  # noqa: BLE001\n        print(json.dumps({\"ok\": False, \"error\": str(exc)}, indent=2))\n        return 1\n    print(json.dumps(response, indent=2, sort_keys=True))\n    return 0 if response.get(\"ok\") else 2\n\n\nif __name__ == \"__main__\":\n    sys.exit(main())\n# Case corpus data card\n\nThis task uses the supplied corpus of 1,500 distinct real PMC case-report records: 500 cardiac, 500 vascular, and 500 systemic. Each JSONL record contains a PMCID, title, journal, final diagnosis, case summary, and derived domain-hit counters. The landing snapshot also contains a second copy of one delivery file, exactly as received; release authority must be established from the incident evidence rather than inferred from the directory listing.\n\nThe index case is supplied as a pre-outcome PDF. No final CT result or final diagnosis is available to the retriever. All profile values come directly from the supplied files; no records are procedurally generated."
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01X7CXhd3F4s8DNUJAFApJBu",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && cat src/*.py && cat scripts/run_retrieval.py && cat tests/test_visible.py\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01X7CXhd3F4s8DNUJAFApJBu",
+    "name": "bash",
+    "content": "\"\"\"Clinical case retrieval candidate package.\"\"\"\n\"\"\"Case-record loading for the deployed candidate.\"\"\"\nfrom __future__ import annotations\n\nimport json\nfrom pathlib import Path\nfrom typing import Any\n\n\ndef load_cases(artifact_root: Path) -> list[dict[str, Any]]:\n    rows: list[dict[str, Any]] = []\n    cases_dir = artifact_root / \"cases\"\n    for path in sorted(cases_dir.glob(\"*.jsonl\")):\n        inferred = path.name.split(\"_\")[0].split(\"(\")[0]\n        for line in path.read_text(encoding=\"utf-8\").splitlines():\n            if not line.strip():\n                continue\n            row = json.loads(line)\n            row[\"source\"] = inferred\n            rows.append(row)\n    return rows\n\n\ndef load_request(path: Path) -> dict[str, Any]:\n    return json.loads(path.read_text(encoding=\"utf-8\"))\n\"\"\"Command-line entry point for the clinical evidence retriever.\"\"\"\nfrom __future__ import annotations\n\nimport argparse\nimport json\nimport sys\nfrom pathlib import Path\n\nfrom .artifact_loader import load_cases, load_request\nfrom .ranker import rank_cases\n\n\ndef main() -> int:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"--artifact-root\", required=True, type=Path)\n    parser.add_argument(\"--request\", type=Path)\n    parser.add_argument(\"--request-stdin\", action=\"store_true\")\n    args = parser.parse_args()\n    if args.request_stdin:\n        request = json.load(sys.stdin)\n    elif args.request:\n        request = load_request(args.request)\n    else:\n        parser.error(\"one of --request or --request-stdin is required\")\n    payload = rank_cases(load_cases(args.artifact_root), request)\n    print(json.dumps(payload, sort_keys=True, separators=(\",\", \":\")))\n    return 0\n\n\nif __name__ == \"__main__\":\n    sys.exit(main())\n\"\"\"Ranking implementation for the deployed candidate.\"\"\"\nfrom __future__ import annotations\n\nfrom collections import Counter\nfrom typing import Any\n\nimport numpy as np\nfrom sklearn.feature_extraction.text import TfidfVectorizer\nfrom sklearn.metrics.pairwise import linear_kernel\n\nfrom .text_views import document_text, normalize\n\n\ndef rank_cases(rows: list[dict[str, Any]], request: dict[str, Any]) -> dict[str, Any]:\n    facets = request[\"facets\"]\n    query = normalize(\" \".join(str(v) for v in facets.values()))\n    documents = [document_text(row) for row in rows]\n\n    vectorizer = TfidfVectorizer(strip_accents=\"unicode\", ngram_range=(1, 1), min_df=1)\n    matrix = vectorizer.fit_transform(documents + [query])\n    scores = linear_kernel(matrix[-1], matrix[:-1]).ravel()\n    order = np.lexsort((np.array([str(r[\"pmcid\"]) for r in rows]), -scores))\n    top_k = int(request.get(\"top_k\", 12))\n    chosen = order[:top_k]\n    results = [\n        {\n            \"pmcid\": str(rows[i][\"pmcid\"]),\n            \"source\": str(rows[i][\"source\"]),\n            \"score\": round(float(scores[i]), 12),\n        }\n        for i in chosen\n    ]\n    domain_counts = Counter(str(r[\"source\"]) for r in rows)\n    return {\n        \"corpus_count\": len(rows),\n        \"domain_counts\": dict(sorted(domain_counts.items())),\n        \"results\": results,\n        \"pmcids\": [r[\"pmcid\"] for r in results],\n        \"method\": \"global_word_unigram_cosine\",\n    }\n\"\"\"Text normalization and document assembly for the deployed candidate.\"\"\"\nfrom __future__ import annotations\n\nimport json\nimport re\nimport unicodedata\nfrom typing import Any\n\n\ndef normalize(text: str) -> str:\n    text = unicodedata.normalize(\"NFKC\", str(text)).lower()\n    return re.sub(r\"\\s+\", \" \", text).strip()\n\n\ndef document_text(row: dict[str, Any]) -> str:\n    return normalize(\" \".join([\n        str(row.get(\"title\", \"\")), str(row.get(\"case_summary\", \"\")),\n        str(row.get(\"final_diagnosis\", \"\")), json.dumps(row.get(\"domain_hits\", {}), sort_keys=True),\n    ]))\n#!/usr/bin/env python3\n\"\"\"Convenience wrapper for the public incident request.\"\"\"\nfrom __future__ import annotations\n\nimport subprocess\nimport sys\n\n\nraise SystemExit(subprocess.call([\n    sys.executable, \"-m\", \"src.cli\", \"--artifact-root\", \"data\",\n    \"--request\", \"data/query_facets.json\",\n]))\nfrom __future__ import annotations\n\nimport json\nimport subprocess\nimport sys\nimport unittest\n\n\nclass VisibleContractTest(unittest.TestCase):\n    def test_public_request_has_operational_shape(self) -> None:\n        proc = subprocess.run(\n            [sys.executable, \"-m\", \"src.cli\", \"--artifact-root\", \"data\", \"--request\", \"data/query_facets.json\"],\n            text=True, capture_output=True, timeout=90, check=False,\n        )\n        self.assertEqual(proc.returncode, 0, proc.stderr)\n        payload = json.loads(proc.stdout.strip().splitlines()[-1])\n        self.assertEqual(len(payload[\"results\"]), 12)\n        self.assertEqual(len(payload[\"pmcids\"]), 12)\n        self.assertTrue(all(set(item) == {\"pmcid\", \"source\", \"score\"} for item in payload[\"results\"]))\n        self.assertTrue(all(item[\"source\"] in {\"cardiac\", \"vascular\", \"systemic\"} for item in payload[\"results\"]))\n\n\nif __name__ == \"__main__\":\n    unittest.main()"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01QsqbQtALUhiYrw1VWKj6aX",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && cat data/query_facets.json && cat data/source_manifest.json && head -3 data/release_registry.jsonl && wc -l data/release_registry.jsonl data/cases/*.jsonl && head -c 2000 data/corpus_profile.csv\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01QsqbQtALUhiYrw1VWKj6aX",
+    "name": "bash",
+    "content": "{\n  \"query_id\": \"post_pci_hypotension_pre_ct\",\n  \"top_k\": 12,\n  \"facets\": {\n    \"cardiac\": \"75-year-old woman after complex right coronary CTO PCI with extensive coronary dissection developed sudden refractory hypotension, elevated venous pressure and tamponade-like physiology, but echocardiography showed no pericardial effusion, angiography showed no free coronary perforation and the ECG was unchanged.\",\n    \"vascular\": \"Dual right radial and right femoral arterial access was followed by persistent hypotension and a hemoglobin fall from 13.2 to 11 g/dL. Femoral angiography showed no access-site bleeding and urgent CT was requested to assess an occult retroperitoneal or venous hemorrhagic complication.\",\n    \"systemic\": \"Abrupt post-procedural hypotension did not respond to fluid or phenylephrine. Nitrate effect, vagal reaction and anaphylaxis were considered unlikely from timing, vital signs and absent response to vasopressors and antihistamines; retrieve systemic shock mimics and drug-related alternatives.\"\n  }\n}\n{\n  \"schema_version\": \"1.0\",\n  \"release\": \"R10\",\n  \"effective_date\": \"2026-08-12\",\n  \"expected_total_rows\": 1500,\n  \"expected_distinct_pmcids\": 1500,\n  \"files\": [\n    {\n      \"domain\": \"cardiac\",\n      \"path\": \"cases/cardiac_cases.jsonl\",\n      \"active\": true,\n      \"rows\": 500,\n      \"sha256\": \"0a6a66d72c65f12ac6abe5a10085b33ebf515ec1df54b753c092a033f930ccce\"\n    },\n    {\n      \"domain\": \"vascular\",\n      \"path\": \"cases/vascular_cases.jsonl\",\n      \"active\": true,\n      \"rows\": 500,\n      \"sha256\": \"8ff88bdbcd79536c923c039253df0472ac6f2c1e09a697ce3ed0647be4fd8d8b\"\n    },\n    {\n      \"domain\": \"systemic\",\n      \"path\": \"cases/systemic_cases.jsonl\",\n      \"active\": true,\n      \"rows\": 500,\n      \"sha256\": \"552c8cf71017b1bf616273b419acc113b5714402146cf94e1b42f4c617e2df3c\"\n    }\n  ],\n  \"identity_registry\": \"release_registry.jsonl\",\n  \"identity_key\": \"record_key\"\n}\n{\"record_key\":\"rk_002adb80f3226670af64\",\"pmcid\":\"PMC11220498\",\"domain\":\"cardiac\"}\n{\"record_key\":\"rk_005babbf2581569da933\",\"pmcid\":\"PMC5488381\",\"domain\":\"vascular\"}\n{\"record_key\":\"rk_00bc9014beb2455c09a4\",\"pmcid\":\"PMC10831287\",\"domain\":\"systemic\"}\n   1500 data/release_registry.jsonl\n    500 data/cases/cardiac_cases.jsonl\n    500 data/cases/systemic_cases(1).jsonl\n    500 data/cases/systemic_cases.jsonl\n    500 data/cases/vascular_cases.jsonl\n   3500 total\nfile,manifest_status,rows,distinct_pmcids,first_pmcid,last_pmcid,missing_title,missing_summary,median_summary_chars\ncardiac_cases.jsonl,active,500,500,PMC10601732,PMC11986323,0,0,1000\nvascular_cases.jsonl,active,500,500,PMC8081020,PMC11365614,0,0,1000\nsystemic_cases.jsonl,active,500,500,PMC10629858,PMC5629885,0,0,1000\nsystemic_cases(1).jsonl,quarantine_unlisted,500,500,PMC10629858,PMC5629885,0,0,1000"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01SWYa1LMdykmjgG1mMB9dnt",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && head -1 data/cases/cardiac_cases.jsonl | python3 -m json.tool && echo ---- && head -1 data/cases/systemic_cases.jsonl | python3 -m json.tool && echo ---- && head -1 'data/cases/systemic_cases(1).jsonl' | python3 -m json.tool\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01SWYa1LMdykmjgG1mMB9dnt",
+    "name": "bash",
+    "content": "{\n    \"pmcid\": \"PMC10601732\",\n    \"title\": \"Primary Cardiac Epithelioid Angiosarcoma with Sustained Remission following Surgical Resection: A Case Report\",\n    \"journal\": \"Case Reports in Oncology\",\n    \"final_diagnosis\": \"EpithelioidAngiosarcoma\",\n    \"case_summary\": \"A 45-year-old woman with iron deficiency anemia and untreated stage I papillary thyroid carcinoma presented with chronic fatigue, night sweats, body aches, and joint pain. Hemoglobin was 6.6 g/dL. She denied chest pain, weight loss, hematochezia, melena, or hematemesis. She had a positive fecal occult blood test and a history of Barrett's esophagus. On hospital day 2, she developed palpitations and was found to be in atrial fibrillation with a rapid ventricular response (heart rate up to 150 bpm), remained hemodynamically stable, and converted to sinus rhythm after intravenous metoprolol. The patient then reported a two-year history of palpitations and occasional syncope, which she had attributed to an experimental immunotherapy she had received. \\nCT of the chest showed a 6.6 ? 5.2 cm mass inferior to the heart with a moderate to large circumferential pericardial effusion. Transthoracic echocardiography estimated an ejection fraction of 70%, with no signs of tamponade and identified a\",\n    \"domain_hits\": {\n        \"cardiac\": 7,\n        \"vascular\": 1,\n        \"systemic\": 3\n    },\n    \"record_key\": \"rk_d6da1db10d9e39ee3ae8\"\n}\n----\n{\n    \"pmcid\": \"PMC10629858\",\n    \"title\": \"A Rare Case of Lambert-Eaton Myasthenia Syndrome Associated with Non-Hodgkin's Lymphoma: A Case Report and Review of the Literature\",\n    \"journal\": \"Case Reports in Oncology\",\n    \"final_diagnosis\": \"Lambert-Eaton myasthenic syndrome\",\n    \"case_summary\": \"A 57-year-old man with a 2-month history of lepromatous leprosy treated with rifampicin, clofazimine, and dapsone presented with abdominal distension, constipation, vomiting, and a 10-kg weight loss. He was vitally stable, with peripheral lymphadenopathy and a distended abdomen with shifting dullness. Abdominal CT showed terminal ileal mural thickening, enlarged mesenteric lymph nodes, mesenteric fat stranding, and free intraperitoneal fluid, suggesting either granulomatous infection or a neoplastic process. Paracentesis revealed atypical large lymphocytes; flow cytometry showed an abnormal CD4/CD8 double-negative T-cell population (38%) with multiple aberrancies. Cervical lymph node biopsy confirmed high-grade peripheral T-cell lymphoma, and bone marrow was uninvolved. He was staged as IV and started on dexamethasone. After developing severe sepsis requiring one week in the ICU, he recovered and received six cycles of dose-adjusted EPOCH chemotherapy with intrathecal methotrexate. Aft\",\n    \"domain_hits\": {\n        \"cardiac\": 0,\n        \"vascular\": 0,\n        \"systemic\": 4\n    },\n    \"record_key\": \"rk_1a2b012c38f17ca2b64c\"\n}\n----\n{\n    \"pmcid\": \"PMC10629858\",\n    \"title\": \"A Rare Case of Lambert-Eaton Myasthenia Syndrome Associated with Non-Hodgkin's Lymphoma: A Case Report and Review of the Literature\",\n    \"journal\": \"Case Reports in Oncology\",\n    \"final_diagnosis\": \"Lambert-Eaton myasthenic syndrome\",\n    \"case_summary\": \"A 57-year-old man with a 2-month history of lepromatous leprosy treated with rifampicin, clofazimine, and dapsone presented with abdominal distension, constipation, vomiting, and a 10-kg weight loss. He was vitally stable, with peripheral lymphadenopathy and a distended abdomen with shifting dullness. Abdominal CT showed terminal ileal mural thickening, enlarged mesenteric lymph nodes, mesenteric fat stranding, and free intraperitoneal fluid, suggesting either granulomatous infection or a neoplastic process. Paracentesis revealed atypical large lymphocytes; flow cytometry showed an abnormal CD4/CD8 double-negative T-cell population (38%) with multiple aberrancies. Cervical lymph node biopsy confirmed high-grade peripheral T-cell lymphoma, and bone marrow was uninvolved. He was staged as IV and started on dexamethasone. After developing severe sepsis requiring one week in the ICU, he recovered and received six cycles of dose-adjusted EPOCH chemotherapy with intrathecal methotrexate. Aft\",\n    \"domain_hits\": {\n        \"cardiac\": 0,\n        \"vascular\": 0,\n        \"systemic\": 4\n    },\n    \"record_key\": \"rk_1a2b012c38f17ca2b64c\"\n}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01ChCUp6Bj9UYQnBagmZ91eM",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 -c \\\"\\nimport html,re\\nt=open('data/retrieval_contract.html',encoding='utf-8').read()\\nt=re.sub(r'<[^>]+>','\\\\n',t)\\nprint(html.unescape(re.sub(r'\\\\n\\\\s*\\\\n+','\\\\n',t)))\\n\\\"\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01ChCUp6Bj9UYQnBagmZ91eM",
+    "name": "bash",
+    "content": "Clinical retrieval service contract\nbody{font-family:system-ui,Arial,sans-serif;max-width:960px;margin:36px auto;color:#172033;line-height:1.48}\nh1{color:#0b2545;margin-bottom:4px}h2{color:#245a86;margin-top:28px}.meta{color:#667085}\ncode{background:#f2f4f7;padding:2px 5px;border-radius:4px}table{border-collapse:collapse;width:100%}\nth,td{border:1px solid #d0d5dd;padding:8px;text-align:left}th{background:#e8eef5}.warning{border-left:4px solid #b7791f;padding:10px 14px;background:#fff8e1}\nClinical Evidence Retrieval Service Contract\nR10 incident copy | Effective 12 August 2026\nThis service produces a request-sized evidence panel for a pre-outcome post-PCI review. The public incident request asks for twelve cases. This copy defines the interface and operational acceptance boundary; it intentionally does not duplicate the release ranking, identity-join, or request-phase implementation.\nInputs\nThe release inventory is described by \nsource_manifest.json\n.\nThe clinical request is described by \nquery_facets.json\n and the pre-outcome PDF.\nThe landing snapshot may contain files or display identifiers that are not release authority.\nOutput interface\nReturn JSON with \ncorpus_count\n, \ndomain_counts\n, \nresults\n, \npmcids\n, and \nmethod\n. Each result contains exactly \npmcid\n, \nsource\n, and a numeric \nscore\n. Serving requests honor a positive \ntop_k\n up to the available release inventory.\nR10 release behavior\nThe release is balanced across the three active cause families and is request-sized. Manifest entry order, JSON facet insertion order, and a global post-allocation score sort are not allocator authority. The request phase, canonical identity join, and accepted lexical/fusion behavior are released only as gated operational receipts after recovery; this incident copy is intentionally insufficient to reconstruct the hidden terminal offline.\nOperational acceptance\nProperty\nWhere evidence is obtained\nRelease population and landing discrepancy\ninspect.sources\n and \nprofile.corpus\nCanonical identity/provenance behavior\naudit.provenance\n after recovery\nLexical index behavior and cross-view calibration\naudit.lexical\n then \naudit.fusion\nRequest-sized panel allocation\naudit.balance\n after ranker validation\nLimited pre-final counterfactual checks\ntwo rate-limited \nshadow.challenge\n probes\nCounterfactual stability\nshadow.replay\nA clean public smoke checks execution and shape only. Local reconstruction against the visible request cannot certify the release terminal; use the gated receipts and the limited challenge budget.\nCutover\nThe candidate may be promoted only after the ordered service path, injected-failure recovery, semantic validations, both distinct challenge probes, and stable shadow replay."
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01TcPBqrgmb4CcwGASdSdFN7",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 -c \\\"\\nimport zipfile,re,html\\nz=zipfile.ZipFile('data/operations_handoff.docx')\\nx=z.read('word/document.xml').decode('utf8')\\nx=re.sub(r'</w:p>','\\\\n',x)\\nx=re.sub(r'<[^>]+>','',x)\\nprint(html.unescape(x))\\n\\\"\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01TcPBqrgmb4CcwGASdSdFN7",
+    "name": "bash",
+    "content": "OPERATIONS HANDOFF\nPost-PCI clinical case retrieval - incident chronology\nService: CPU clinical case retriever\nRelease line: R9 candidate\nIncident: Plausible public ranking, unstable shadow evidence set\nStatus: Repair and operational cutover required\n1. Incident snapshot\nThe public smoke returns twelve unique cases, but the shadow panel changes under ordinary serving counterfactuals involving release inventory, request phase, and identifier projection. The first candidate deployment also returns dirty before ranking can be evaluated.\n2. Evidence chronology\nDate\nObserved event\nFollow-up evidence\n02 Apr\nLanding inventory exceeded the release population.\nSource inspection added to the gate.\n08 Apr\nShadow ranks changed after redaction and reordering.\nCounterfactual retained for validation.\n10 Apr\nView scores failed a comparability review.\nAccepted receipts moved behind audit.\n13 Apr\nA balanced twelve-case panel was accepted.\nExact evidence issued after recovery.\n3. Shift notes\nNote 1: The PDF ends before the CT result; do not assume an absent outcome.\nNote 2: The ranking audit releases accepted receipts only after recovery.\nNote 3: A clean visible smoke proves execution and shape only.\n4. Operational boundary\nThis handoff records symptoms, not the accepted feature configuration, fusion rule, identity-join implementation, or request-phase function. Recover those behaviors from broker-issued receipts after recovery and verify hypotheses through the limited challenge budget.\nHandoff warning: do not promote from a local result file; the environment snapshot, ordered walk, matched recovery, and stable replay are required.\n5. R9 release-discovery note\nThe public incident remains a twelve-case request, but serving is request-sized. The allocator phase and canonical identity join are deliberately not duplicated in this static handoff. audit.balance and audit.provenance are the operational authorities; manifest order, facet insertion order, and a landing display identifier are not sufficient release authority."
+  },
+  {
+    "role": "assistant",
+    "content": "Now let me start the ordered observation walk.",
+    "tool_calls": [
+      {
+        "id": "toolu_01X2WJrqM7wMydvYa95LeqCy",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 env_cli.py inspect.sources && python3 env_cli.py inspect.schema\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01X2WJrqM7wMydvYa95LeqCy",
+    "name": "bash",
+    "content": "{\n  \"active_files\": [\n    \"cardiac_cases.jsonl\",\n    \"vascular_cases.jsonl\",\n    \"systemic_cases.jsonl\"\n  ],\n  \"authority\": \"source_manifest.json\",\n  \"expected_rows\": 1500,\n  \"identity_registry_present\": true,\n  \"next\": \"inspect.schema\",\n  \"ok\": true,\n  \"op\": \"inspect.sources\",\n  \"unlisted_landing_files\": [\n    \"systemic_cases(1).jsonl\"\n  ]\n}\n{\n  \"handoff_present\": true,\n  \"landing_fields\": [\n    \"case_summary\",\n    \"domain_hits\",\n    \"final_diagnosis\",\n    \"journal\",\n    \"pmcid\",\n    \"record_key\",\n    \"title\"\n  ],\n  \"next\": \"audit.query\",\n  \"note\": \"field eligibility is not declared in the landing schema\",\n  \"ok\": true,\n  \"op\": \"inspect.schema\",\n  \"serving_boundary\": \"pre_outcome\"\n}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01NdWYP7sQuXK9yfZM2qctXB",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 env_cli.py audit.query && python3 env_cli.py profile.corpus && python3 env_cli.py sample.records\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01NdWYP7sQuXK9yfZM2qctXB",
+    "name": "bash",
+    "content": "{\n  \"facet_char_counts\": {\n    \"cardiac\": 314,\n    \"systemic\": 292,\n    \"vascular\": 285\n  },\n  \"facet_names\": [\n    \"cardiac\",\n    \"systemic\",\n    \"vascular\"\n  ],\n  \"next\": \"profile.corpus\",\n  \"ok\": true,\n  \"op\": \"audit.query\",\n  \"outcome_boundary\": \"pre_ct_result\",\n  \"pdf_pages\": 1,\n  \"pdf_text_chars\": 2368,\n  \"query_id\": \"post_pci_hypotension_pre_ct\",\n  \"top_k\": 12\n}\n{\n  \"candidate_ran\": true,\n  \"elapsed_sec\": 1.532,\n  \"method\": \"global_word_unigram_cosine\",\n  \"next\": \"sample.records\",\n  \"ok\": true,\n  \"op\": \"profile.corpus\",\n  \"reported_corpus_count\": 2000,\n  \"reported_domain_counts\": {\n    \"cardiac\": 500,\n    \"systemic\": 1000,\n    \"vascular\": 500\n  },\n  \"top12_source_counts\": {\n    \"cardiac\": 9,\n    \"systemic\": 2,\n    \"vascular\": 1\n  }\n}\n{\n  \"next\": \"test.visible\",\n  \"note\": \"sample output is limited to pre-outcome text\",\n  \"ok\": true,\n  \"op\": \"sample.records\",\n  \"samples\": [\n    {\n      \"pmcid\": \"PMC10601732\",\n      \"source\": \"cardiac\",\n      \"summary_prefix\": \"A 45-year-old woman with iron deficiency anemia and untreated stage I papillary thyroid carcinoma presented with chronic fatigue, night sweats, body a\",\n      \"title\": \"Primary Cardiac Epithelioid Angiosarcoma with Sustained Remission following Surgical Resection: A Case Report\"\n    },\n    {\n      \"pmcid\": \"PMC8081020\",\n      \"source\": \"vascular\",\n      \"summary_prefix\": \"A 36-year-old Caucasian man was admitted to a psychiatric ward for severe depression and alcohol misuse. He had abstained from alcohol for 2 weeks pri\",\n      \"title\": \"Sertraline as a rare cause of interstitial lung disease\"\n    },\n    {\n      \"pmcid\": \"PMC10629858\",\n      \"source\": \"systemic\",\n      \"summary_prefix\": \"A 57-year-old man with a 2-month history of lepromatous leprosy treated with rifampicin, clofazimine, and dapsone presented with abdominal distension,\",\n      \"title\": \"A Rare Case of Lambert-Eaton Myasthenia Syndrome Associated with Non-Hodgkin's Lymphoma: A Case Report and Review of the Literature\"\n    }\n  ]\n}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01MXNe4KHNvgpWFH1ndGtiXn",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 env_cli.py test.visible && python3 env_cli.py reproduce\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01MXNe4KHNvgpWFH1ndGtiXn",
+    "name": "bash",
+    "content": "{\n  \"next\": \"reproduce\",\n  \"ok\": true,\n  \"op\": \"test.visible\",\n  \"passed\": true,\n  \"returncode\": 0,\n  \"summary\": \"----------------------------------------------------------------------\\nRan 1 test in 1.424s\\n\\nOK\\n\"\n}\n{\n  \"anchor_hits\": {\n    \"cardiac\": 1,\n    \"systemic\": 0,\n    \"vascular\": 0\n  },\n  \"candidate_ran\": true,\n  \"elapsed_sec\": 1.479,\n  \"method\": \"global_word_unigram_cosine\",\n  \"next\": \"deploy\",\n  \"ok\": true,\n  \"op\": \"reproduce\",\n  \"reported_corpus_count\": 2000\n}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01DW6huoPyAGsHnQwgfv3nhV",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 env_cli.py deploy && python3 env_cli.py validate.runtime\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01DW6huoPyAGsHnQwgfv3nhV",
+    "name": "bash",
+    "content": "{\n  \"candidate_hash\": \"37bb4f1d0c085ec2678a\",\n  \"generation\": 1,\n  \"next\": \"validate.runtime\",\n  \"ok\": true,\n  \"op\": \"deploy\"\n}\n{\n  \"next\": \"diagnostics.read\",\n  \"ok\": true,\n  \"op\": \"validate.runtime\",\n  \"reason\": \"injected_failure\",\n  \"remaining\": 3,\n  \"scope\": \"runtime_integrity_only\",\n  \"status\": \"dirty\"\n}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01G63rymcMkpaYQRjJ1f68V8",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 env_cli.py diagnostics.read\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01G63rymcMkpaYQRjJ1f68V8",
+    "name": "bash",
+    "content": "{\n  \"family\": \"stale_vector_cache\",\n  \"next\": \"recovery.apply\",\n  \"ok\": true,\n  \"op\": \"diagnostics.read\",\n  \"symptom\": \"deployed_vector_snapshot_serves_pre_cutover_schema\"\n}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01HdAz4epxSJwfM3D7opAwtS",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 env_cli.py recovery.apply --family stale_vector_cache && python3 env_cli.py validate.runtime\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01HdAz4epxSJwfM3D7opAwtS",
+    "name": "bash",
+    "content": "{\n  \"cache_generation\": 1,\n  \"family\": \"stale_vector_cache\",\n  \"next\": \"validate.runtime\",\n  \"ok\": true,\n  \"op\": \"recovery.apply\"\n}\n{\n  \"next\": \"audit.provenance\",\n  \"ok\": true,\n  \"op\": \"validate.runtime\",\n  \"reason\": \"pmcids_not_unique_12\",\n  \"remaining\": 2,\n  \"scope\": \"runtime_integrity_only\",\n  \"status\": \"dirty\"\n}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01SJQXA2zPSc9iahZzVeqhPf",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 env_cli.py status\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01SJQXA2zPSc9iahZzVeqhPf",
+    "name": "bash",
+    "content": "{\n  \"candidate_hash\": \"37bb4f1d0c085ec2678a\",\n  \"challenge_remaining\": 2,\n  \"next\": \"audit.provenance\",\n  \"ok\": true,\n  \"op\": \"status\",\n  \"recovery_locked\": false,\n  \"snapshot_generation\": 1,\n  \"submitted\": false,\n  \"validate_remaining\": 2\n}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01A3oVApTdEKQtSMvDD1Sa72",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 env_cli.py audit.provenance\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01A3oVApTdEKQtSMvDD1Sa72",
+    "name": "bash",
+    "content": "{\n  \"base_count\": null,\n  \"candidate_counterfactual_stability\": \"unstable\",\n  \"candidate_reported_corpus_count\": 2000,\n  \"candidate_reported_domain_counts\": {\n    \"cardiac\": 500,\n    \"systemic\": 1000,\n    \"vascular\": 500\n  },\n  \"canonical_output_id\": \"pmcid\",\n  \"counterfactual\": \"row_order_plus_post_adjudication_rewrite_plus_display_identifier_projection\",\n  \"counterfactual_count\": null,\n  \"identity_authority\": \"release_registry.jsonl\",\n  \"join_key\": \"record_key\",\n  \"next\": \"audit.lexical\",\n  \"ok\": true,\n  \"op\": \"audit.provenance\",\n  \"release_manifest_distinct\": 1500,\n  \"release_manifest_rows\": 1500\n}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01QWVkZFKXeUGBWxnbwXopba",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 env_cli.py audit.lexical\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01QWVkZFKXeUGBWxnbwXopba",
+    "name": "bash",
+    "content": "{\n  \"anchor_identity_source\": \"broker-held incident anchors\",\n  \"domains\": {\n    \"cardiac\": {\n      \"view_a\": {\n        \"dictionary_columns\": 11375,\n        \"public_anchor_position\": 12,\n        \"request_active_columns\": 46\n      },\n      \"view_b\": {\n        \"dictionary_columns\": 33684,\n        \"public_anchor_position\": 2,\n        \"request_active_columns\": 577\n      }\n    },\n    \"systemic\": {\n      \"view_a\": {\n        \"dictionary_columns\": 12117,\n        \"public_anchor_position\": 5,\n        \"request_active_columns\": 29\n      },\n      \"view_b\": {\n        \"dictionary_columns\": 38723,\n        \"public_anchor_position\": 12,\n        \"request_active_columns\": 548\n      }\n    },\n    \"vascular\": {\n      \"view_a\": {\n        \"dictionary_columns\": 12109,\n        \"public_anchor_position\": 5,\n        \"request_active_columns\": 45\n      },\n      \"view_b\": {\n        \"dictionary_columns\": 36728,\n        \"public_anchor_position\": 5,\n        \"request_active_columns\": 495\n      }\n    }\n  },\n  \"next\": \"audit.fusion\",\n  \"note\": \"counts and positions are release observations, not a published vectorizer configuration\",\n  \"ok\": true,\n  \"op\": \"audit.lexical\",\n  \"receipt_kind\": \"release_index_behavior\"\n}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01Pe6ZhADVKgXPWxUQbAmiVk",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 env_cli.py audit.fusion\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01Pe6ZhADVKgXPWxUQbAmiVk",
+    "name": "bash",
+    "content": "{\n  \"calibration\": [\n    {\n      \"release_value\": 0.032266458496,\n      \"view_positions\": [\n        1,\n        3\n      ]\n    },\n    {\n      \"release_value\": 0.030017921147,\n      \"view_positions\": [\n        12,\n        2\n      ]\n    },\n    {\n      \"release_value\": 0.028258706468,\n      \"view_positions\": [\n        15,\n        7\n      ]\n    },\n    {\n      \"release_value\": 0.028309409888,\n      \"view_positions\": [\n        16,\n        6\n      ]\n    }\n  ],\n  \"next\": \"deploy.ranker\",\n  \"note\": \"calibration cases expose only the two within-view rank positions and the accepted release value\",\n  \"ok\": true,\n  \"op\": \"audit.fusion\",\n  \"raw_similarity_scales\": \"not_exchangeable\",\n  \"receipt_kind\": \"cross_view_calibration\"\n}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01YCK3cjHfYDPVMKERDt7oni",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && cat > /tmp/exp1.py <<'EOF'\\nimport json, itertools\\nfrom pathlib import Path\\nfrom sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer\\nimport re, unicodedata\\n\\ndef norm(t):\\n    t=unicodedata.normalize(\\\"NFKC\\\",str(t)).lower()\\n    return re.sub(r\\\"\\\\s+\\\",\\\" \\\",t).strip()\\n\\nrows={}\\nfor d in [\\\"cardiac\\\",\\\"vascular\\\",\\\"systemic\\\"]:\\n    rs=[json.loads(l) for l in open(f\\\"data/cases/{d}_cases.jsonl\\\") if l.strip()]\\n    rows[d]=rs\\nreq=json.load(open(\\\"data/query_facets.json\\\"))[\\\"facets\\\"]\\n\\nfields_opts = {\\n \\\"title+summary\\\": lambda r: \\\" \\\".join([r[\\\"title\\\"], r[\\\"case_summary\\\"]]),\\n \\\"title+summary+journal\\\": lambda r: \\\" \\\".join([r[\\\"title\\\"], r[\\\"journal\\\"], r[\\\"case_summary\\\"]]),\\n \\\"summary\\\": lambda r: r[\\\"case_summary\\\"],\\n \\\"title+summary+diag\\\": lambda r: \\\" \\\".join([r[\\\"title\\\"], r[\\\"case_summary\\\"], r[\\\"final_diagnosis\\\"]]),\\n}\\ntargets={\\\"cardiac\\\":(11375,33684,46,577),\\\"systemic\\\":(12117,38723,29,548),\\\"vascular\\\":(12109,36728,45,495)}\\nfor name,f in fields_opts.items():\\n    for d in [\\\"cardiac\\\",\\\"systemic\\\",\\\"vascular\\\"]:\\n        docs=[norm(f(r)) for r in rows[d]]\\n        for params in [dict(ngram_range=(1,1)), dict(ngram_range=(1,2)), dict(ngram_range=(1,1),stop_words=\\\"english\\\"), dict(ngram_range=(1,1),strip_accents=\\\"unicode\\\")]:\\n            v=TfidfVectorizer(**params)\\n            X=v.fit_transform(docs)\\n            q=v.transform([norm(req[d])])\\n            print(name,d,params,len(v.vocabulary_), q.nnz, \\\"TARGET\\\",targets[d])\\nEOF\\npython3 /tmp/exp1.py 2>/dev/null | head -60\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01YCK3cjHfYDPVMKERDt7oni",
+    "name": "bash",
+    "content": "title+summary cardiac {'ngram_range': (1, 1)} 6142 36 TARGET (11375, 33684, 46, 577)\ntitle+summary cardiac {'ngram_range': (1, 2)} 39079 57 TARGET (11375, 33684, 46, 577)\ntitle+summary cardiac {'ngram_range': (1, 1), 'stop_words': 'english'} 5971 29 TARGET (11375, 33684, 46, 577)\ntitle+summary cardiac {'ngram_range': (1, 1), 'strip_accents': 'unicode'} 6142 36 TARGET (11375, 33684, 46, 577)\ntitle+summary systemic {'ngram_range': (1, 1)} 7383 27 TARGET (12117, 38723, 29, 548)\ntitle+summary systemic {'ngram_range': (1, 2)} 45194 39 TARGET (12117, 38723, 29, 548)\ntitle+summary systemic {'ngram_range': (1, 1), 'stop_words': 'english'} 7208 21 TARGET (12117, 38723, 29, 548)\ntitle+summary systemic {'ngram_range': (1, 1), 'strip_accents': 'unicode'} 7383 27 TARGET (12117, 38723, 29, 548)\ntitle+summary vascular {'ngram_range': (1, 1)} 7352 35 TARGET (12109, 36728, 45, 495)\ntitle+summary vascular {'ngram_range': (1, 2)} 45849 57 TARGET (12109, 36728, 45, 495)\ntitle+summary vascular {'ngram_range': (1, 1), 'stop_words': 'english'} 7172 27 TARGET (12109, 36728, 45, 495)\ntitle+summary vascular {'ngram_range': (1, 1), 'strip_accents': 'unicode'} 7352 35 TARGET (12109, 36728, 45, 495)\ntitle+summary+journal cardiac {'ngram_range': (1, 1)} 6201 36 TARGET (11375, 33684, 46, 577)\ntitle+summary+journal cardiac {'ngram_range': (1, 2)} 39412 57 TARGET (11375, 33684, 46, 577)\ntitle+summary+journal cardiac {'ngram_range': (1, 1), 'stop_words': 'english'} 6030 29 TARGET (11375, 33684, 46, 577)\ntitle+summary+journal cardiac {'ngram_range': (1, 1), 'strip_accents': 'unicode'} 6201 36 TARGET (11375, 33684, 46, 577)\ntitle+summary+journal systemic {'ngram_range': (1, 1)} 7470 27 TARGET (12117, 38723, 29, 548)\ntitle+summary+journal systemic {'ngram_range': (1, 2)} 45765 39 TARGET (12117, 38723, 29, 548)\ntitle+summary+journal systemic {'ngram_range': (1, 1), 'stop_words': 'english'} 7295 21 TARGET (12117, 38723, 29, 548)\ntitle+summary+journal systemic {'ngram_range': (1, 1), 'strip_accents': 'unicode'} 7470 27 TARGET (12117, 38723, 29, 548)\ntitle+summary+journal vascular {'ngram_range': (1, 1)} 7444 35 TARGET (12109, 36728, 45, 495)\ntitle+summary+journal vascular {'ngram_range': (1, 2)} 46412 57 TARGET (12109, 36728, 45, 495)\ntitle+summary+journal vascular {'ngram_range': (1, 1), 'stop_words': 'english'} 7264 27 TARGET (12109, 36728, 45, 495)\ntitle+summary+journal vascular {'ngram_range': (1, 1), 'strip_accents': 'unicode'} 7444 35 TARGET (12109, 36728, 45, 495)\nsummary cardiac {'ngram_range': (1, 1)} 5588 36 TARGET (11375, 33684, 46, 577)\nsummary cardiac {'ngram_range': (1, 2)} 35223 54 TARGET (11375, 33684, 46, 577)\nsummary cardiac {'ngram_range': (1, 1), 'stop_words': 'english'} 5427 29 TARGET (11375, 33684, 46, 577)\nsummary cardiac {'ngram_range': (1, 1), 'strip_accents': 'unicode'} 5588 36 TARGET (11375, 33684, 46, 577)\nsummary systemic {'ngram_range': (1, 1)} 6738 27 TARGET (12117, 38723, 29, 548)\nsummary systemic {'ngram_range': (1, 2)} 41023 39 TARGET (12117, 38723, 29, 548)\nsummary systemic {'ngram_range': (1, 1), 'stop_words': 'english'} 6571 21 TARGET (12117, 38723, 29, 548)\nsummary systemic {'ngram_range': (1, 1), 'strip_accents': 'unicode'} 6738 27 TARGET (12117, 38723, 29, 548)\nsummary vascular {'ngram_range': (1, 1)} 6779 35 TARGET (12109, 36728, 45, 495)\nsummary vascular {'ngram_range': (1, 2)} 41793 57 TARGET (12109, 36728, 45, 495)\nsummary vascular {'ngram_range': (1, 1), 'stop_words': 'english'} 6606 27 TARGET (12109, 36728, 45, 495)\nsummary vascular {'ngram_range': (1, 1), 'strip_accents': 'unicode'} 6779 35 TARGET (12109, 36728, 45, 495)\ntitle+summary+diag cardiac {'ngram_range': (1, 1)} 6207 36 TARGET (11375, 33684, 46, 577)\ntitle+summary+diag cardiac {'ngram_range': (1, 2)} 39734 57 TARGET (11375, 33684, 46, 577)\ntitle+summary+diag cardiac {'ngram_range': (1, 1), 'stop_words': 'english'} 6036 29 TARGET (11375, 33684, 46, 577)\ntitle+summary+diag cardiac {'ngram_range': (1, 1), 'strip_accents': 'unicode'} 6207 36 TARGET (11375, 33684, 46, 577)\ntitle+summary+diag systemic {'ngram_range': (1, 1)} 7468 27 TARGET (12117, 38723, 29, 548)\ntitle+summary+diag systemic {'ngram_range': (1, 2)} 45908 39 TARGET (12117, 38723, 29, 548)\ntitle+summary+diag systemic {'ngram_range': (1, 1), 'stop_words': 'english'} 7293 21 TARGET (12117, 38723, 29, 548)\ntitle+summary+diag systemic {'ngram_range': (1, 1), 'strip_accents': 'unicode'} 7468 27 TARGET (12117, 38723, 29, 548)\ntitle+summary+diag vascular {'ngram_range': (1, 1)} 7418 35 TARGET (12109, 36728, 45, 495)\ntitle+summary+diag vascular {'ngram_range': (1, 2)} 46547 57 TARGET (12109, 36728, 45, 495)\ntitle+summary+diag vascular {'ngram_range': (1, 1), 'stop_words': 'english'} 7238 27 TARGET (12109, 36728, 45, 495)\ntitle+summary+diag vascular {'ngram_range': (1, 1), 'strip_accents': 'unicode'} 7418 35 TARGET (12109, 36728, 45, 495)"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01EjSctP8KNAm22fsac1zmZ9",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && cat > /tmp/exp2.py <<'EOF'\\nimport json, re, unicodedata, itertools\\nfrom sklearn.feature_extraction.text import TfidfVectorizer\\ndef norm(t):\\n    t=unicodedata.normalize(\\\"NFKC\\\",str(t)).lower()\\n    return re.sub(r\\\"\\\\s+\\\",\\\" \\\",t).strip()\\nrows={}\\nfor d in [\\\"cardiac\\\",\\\"vascular\\\",\\\"systemic\\\"]:\\n    rows[d]=[json.loads(l) for l in open(f\\\"data/cases/{d}_cases.jsonl\\\") if l.strip()]\\nreq=json.load(open(\\\"data/query_facets.json\\\"))[\\\"facets\\\"]\\ntargets={\\\"cardiac\\\":(11375,33684,46,577),\\\"systemic\\\":(12117,38723,29,548),\\\"vascular\\\":(12109,36728,45,495)}\\nfieldsets={\\n \\\"t+s\\\": lambda r: \\\" \\\".join([r[\\\"title\\\"], r[\\\"case_summary\\\"]]),\\n \\\"t+j+s\\\": lambda r: \\\" \\\".join([r[\\\"title\\\"], r[\\\"journal\\\"], r[\\\"case_summary\\\"]]),\\n \\\"s\\\": lambda r: r[\\\"case_summary\\\"],\\n \\\"t+s+d\\\": lambda r: \\\" \\\".join([r[\\\"title\\\"], r[\\\"case_summary\\\"], r[\\\"final_diagnosis\\\"]]),\\n \\\"t\\\": lambda r: r[\\\"title\\\"],\\n \\\"t+j+s+d\\\": lambda r: \\\" \\\".join([r[\\\"title\\\"], r[\\\"journal\\\"], r[\\\"case_summary\\\"], r[\\\"final_diagnosis\\\"]]),\\n}\\ncfgs=[]\\nfor ng in [(1,1),(1,2),(2,2),(1,3)]:\\n    for tp in [None, r\\\"(?u)\\\\b\\\\w+\\\\b\\\", r\\\"[a-z]+\\\", r\\\"[a-z0-9]+\\\"]:\\n        for sw in [None,\\\"english\\\"]:\\n            for mdf in [1,2,3]:\\n                cfgs.append((\\\"word\\\",ng,tp,sw,mdf))\\nfor ng in [(2,4),(3,5),(2,5),(3,4),(4,5),(3,6),(2,3),(4,6),(5,5),(4,4),(3,3)]:\\n    for an in [\\\"char\\\",\\\"char_wb\\\"]:\\n        for mdf in [1,2,3]:\\n            cfgs.append((an,ng,None,None,mdf))\\nfor fname,f in fieldsets.items():\\n    for d in [\\\"cardiac\\\",\\\"systemic\\\",\\\"vascular\\\"]:\\n        docs=[norm(f(r)) for r in rows[d]]\\n        q=norm(req[d])\\n        for an,ng,tp,sw,mdf in cfgs:\\n            kw=dict(analyzer=an,ngram_range=ng,min_df=mdf)\\n            if tp: kw[\\\"token_pattern\\\"]=tp\\n            if sw: kw[\\\"stop_words\\\"]=sw\\n            try:\\n                v=TfidfVectorizer(**kw); X=v.fit_transform(docs)\\n            except Exception: continue\\n            nv=len(v.vocabulary_)\\n            if nv in targets[d][:2]:\\n                qq=v.transform([q])\\n                print(\\\"MATCH DICT\\\",fname,d,an,ng,tp,sw,mdf,\\\"dict\\\",nv,\\\"active\\\",qq.nnz,\\\"target\\\",targets[d])\\nEOF\\npython3 /tmp/exp2.py 2>/dev/null\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01EjSctP8KNAm22fsac1zmZ9",
+    "name": "bash",
+    "content": "{\"ok\": false, \"error\": \"tool bash crashed: Command '['docker', 'exec', '-u', 'ubuntu', '-w', '/workspace/target', 'harbor-cpu-ml-engineering-post-pci-clinical-case-retrieval-drift-run', 'bash', '-c', 'cd /workspace/target && cat > /tmp/exp2.py\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01MCUaJvE7Z16e9rJBnR3P2Q",
+        "type": "function",
+        "function": {
+          "name": "write_file",
+          "arguments": "{\"path\": \"/tmp/exp2.py\", \"content\": \"import json, re, unicodedata\\nfrom sklearn.feature_extraction.text import TfidfVectorizer\\ndef norm(t):\\n    t=unicodedata.normalize(\\\"NFKC\\\",str(t)).lower()\\n    return re.sub(r\\\"\\\\s+\\\",\\\" \\\",t).strip()\\nrows={}\\nfor d in [\\\"cardiac\\\",\\\"vascular\\\",\\\"systemic\\\"]:\\n    rows[d]=[json.loads(l) for l in open(f\\\"data/cases/{d}_cases.jsonl\\\") if l.strip()]\\nreq=json.load(open(\\\"data/query_facets.json\\\"))[\\\"facets\\\"]\\ntargets={\\\"cardiac\\\":(11375,33684),\\\"systemic\\\":(12117,38723),\\\"vascular\\\":(12109,36728)}\\nfieldsets={\\n \\\"t+s\\\": lambda r: \\\" \\\".join([r[\\\"title\\\"], r[\\\"case_summary\\\"]]),\\n \\\"t+j+s\\\": lambda r: \\\" \\\".join([r[\\\"title\\\"], r[\\\"journal\\\"], r[\\\"case_summary\\\"]]),\\n \\\"s\\\": lambda r: r[\\\"case_summary\\\"],\\n \\\"t+s+d\\\": lambda r: \\\" \\\".join([r[\\\"title\\\"], r[\\\"case_summary\\\"], r[\\\"final_diagnosis\\\"]]),\\n \\\"t+j+s+d\\\": lambda r: \\\" \\\".join([r[\\\"title\\\"], r[\\\"journal\\\"], r[\\\"case_summary\\\"], r[\\\"final_diagnosis\\\"]]),\\n}\\ncfgs=[]\\nfor ng in [(1,1),(1,2),(2,2)]:\\n    for tp in [None, r\\\"(?u)\\\\b\\\\w+\\\\b\\\", r\\\"[a-z]+\\\", r\\\"[a-z0-9]+\\\"]:\\n        for sw in [None,\\\"english\\\"]:\\n            for lc in [True,False]:\\n                cfgs.append(dict(analyzer=\\\"word\\\",ngram_range=ng,token_pattern=tp,stop_words=sw,lowercase=lc))\\nfor fname,f in fieldsets.items():\\n    for d in [\\\"cardiac\\\",\\\"systemic\\\",\\\"vascular\\\"]:\\n        docs=[norm(f(r)) if True else None for r in rows[d]]\\n        raw=[\\\" \\\".join([str(r.get(k,\\\"\\\")) for k in (\\\"title\\\",\\\"journal\\\",\\\"case_summary\\\",\\\"final_diagnosis\\\")]) for r in rows[d]]\\n        for cfg in cfgs:\\n            kw={k:v for k,v in cfg.items() if v is not None}\\n            for tag,D in ((\\\"norm\\\",docs),):\\n                try:\\n                    v=TfidfVectorizer(**kw); v.fit(D)\\n                except Exception as e:\\n                    continue\\n                nv=len(v.vocabulary_)\\n                if abs(nv-targets[d][0])<400 or abs(nv-targets[d][1])<1500:\\n                    print(\\\"NEAR\\\",fname,d,tag,kw,nv,targets[d])\\n\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01MCUaJvE7Z16e9rJBnR3P2Q",
+    "name": "write_file",
+    "content": "{\"ok\": true, \"wrote\": \"/tmp/exp2.py\", \"bytes\": 1842}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01J2G2UbauzgDvFdpy3zSJSm",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 /tmp/exp2.py 2>/dev/null | head -40\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01J2G2UbauzgDvFdpy3zSJSm",
+    "name": "bash",
+    "content": "NEAR t+s cardiac norm {'analyzer': 'word', 'ngram_range': (1, 2), 'token_pattern': '[a-z]+', 'stop_words': 'english', 'lowercase': True} 32582 (11375, 33684)\nNEAR t+s cardiac norm {'analyzer': 'word', 'ngram_range': (1, 2), 'token_pattern': '[a-z]+', 'stop_words': 'english', 'lowercase': False} 32582 (11375, 33684)\nNEAR t+s cardiac norm {'analyzer': 'word', 'ngram_range': (2, 2), 'lowercase': True} 32937 (11375, 33684)\nNEAR t+s cardiac norm {'analyzer': 'word', 'ngram_range': (2, 2), 'lowercase': False} 32937 (11375, 33684)\nNEAR t+s cardiac norm {'analyzer': 'word', 'ngram_range': (2, 2), 'token_pattern': '(?u)\\\\b\\\\w+\\\\b', 'lowercase': True} 33611 (11375, 33684)\nNEAR t+s cardiac norm {'analyzer': 'word', 'ngram_range': (2, 2), 'token_pattern': '(?u)\\\\b\\\\w+\\\\b', 'lowercase': False} 33611 (11375, 33684)\nNEAR t+s cardiac norm {'analyzer': 'word', 'ngram_range': (2, 2), 'token_pattern': '[a-z0-9]+', 'lowercase': True} 33611 (11375, 33684)\nNEAR t+s cardiac norm {'analyzer': 'word', 'ngram_range': (2, 2), 'token_pattern': '[a-z0-9]+', 'lowercase': False} 33611 (11375, 33684)\nNEAR t+s systemic norm {'analyzer': 'word', 'ngram_range': (1, 2), 'token_pattern': '[a-z]+', 'lowercase': True} 40192 (12117, 38723)\nNEAR t+s systemic norm {'analyzer': 'word', 'ngram_range': (1, 2), 'token_pattern': '[a-z]+', 'lowercase': False} 40192 (12117, 38723)\nNEAR t+s systemic norm {'analyzer': 'word', 'ngram_range': (2, 2), 'lowercase': True} 37811 (12117, 38723)\nNEAR t+s systemic norm {'analyzer': 'word', 'ngram_range': (2, 2), 'lowercase': False} 37811 (12117, 38723)\nNEAR t+s systemic norm {'analyzer': 'word', 'ngram_range': (2, 2), 'token_pattern': '(?u)\\\\b\\\\w+\\\\b', 'lowercase': True} 38778 (12117, 38723)\nNEAR t+s systemic norm {'analyzer': 'word', 'ngram_range': (2, 2), 'token_pattern': '(?u)\\\\b\\\\w+\\\\b', 'lowercase': False} 38778 (12117, 38723)\nNEAR t+s systemic norm {'analyzer': 'word', 'ngram_range': (2, 2), 'token_pattern': '[a-z0-9]+', 'lowercase': True} 38778 (12117, 38723)\nNEAR t+s systemic norm {'analyzer': 'word', 'ngram_range': (2, 2), 'token_pattern': '[a-z0-9]+', 'lowercase': False} 38778 (12117, 38723)\nNEAR t+s vascular norm {'analyzer': 'word', 'ngram_range': (2, 2), 'token_pattern': '(?u)\\\\b\\\\w+\\\\b', 'stop_words': 'english', 'lowercase': True} 36149 (12109, 36728)\nNEAR t+s vascular norm {'analyzer': 'word', 'ngram_range': (2, 2), 'token_pattern': '(?u)\\\\b\\\\w+\\\\b', 'stop_words': 'english', 'lowercase': False} 36149 (12109, 36728)\nNEAR t+s vascular norm {'analyzer': 'word', 'ngram_range': (2, 2), 'token_pattern': '[a-z]+', 'lowercase': True} 35915 (12109, 36728)\nNEAR t+s vascular norm {'analyzer': 'word', 'ngram_range': (2, 2), 'token_pattern': '[a-z]+', 'lowercase': False} 35915 (12109, 36728)\nNEAR t+s vascular norm {'analyzer': 'word', 'ngram_range': (2, 2), 'token_pattern': '[a-z0-9]+', 'stop_words': 'english', 'lowercase': True} 36150 (12109, 36728)\nNEAR t+s vascular norm {'analyzer': 'word', 'ngram_range': (2, 2), 'token_pattern': '[a-z0-9]+', 'stop_words': 'english', 'lowercase': False} 36150 (12109, 36728)\nNEAR t+j+s cardiac norm {'analyzer': 'word', 'ngram_range': (1, 2), 'token_pattern': '[a-z]+', 'stop_words': 'english', 'lowercase': True} 32931 (11375, 33684)\nNEAR t+j+s cardiac norm {'analyzer': 'word', 'ngram_range': (1, 2), 'token_pattern': '[a-z]+', 'stop_words': 'english', 'lowercase': False} 32931 (11375, 33684)\nNEAR t+j+s cardiac norm {'analyzer': 'word', 'ngram_range': (2, 2), 'lowercase': True} 33211 (11375, 33684)\nNEAR t+j+s cardiac norm {'analyzer': 'word', 'ngram_range': (2, 2), 'lowercase': False} 33211 (11375, 33684)\nNEAR t+j+s cardiac norm {'analyzer': 'word', 'ngram_range': (2, 2), 'token_pattern': '(?u)\\\\b\\\\w+\\\\b', 'lowercase': True} 33957 (11375, 33684)\nNEAR t+j+s cardiac norm {'analyzer': 'word', 'ngram_range': (2, 2), 'token_pattern': '(?u)\\\\b\\\\w+\\\\b', 'lowercase': False} 33957 (11375, 33684)\nNEAR t+j+s cardiac norm {'analyzer': 'word', 'ngram_range': (2, 2), 'token_pattern': '[a-z0-9]+', 'lowercase': True} 33957 (11375, 33684)\nNEAR t+j+s cardiac norm {'analyzer': 'word', 'ngram_range': (2, 2), 'token_pattern': '[a-z0-9]+', 'lowercase': False} 33957 (11375, 33684)\nNEAR t+j+s systemic norm {'analyzer': 'word', 'ngram_range': (1, 2), 'token_pattern': '[a-z]+', 'stop_words': 'english', 'lowercase': True} 37292 (12117, 38723)\nNEAR t+j+s systemic norm {'analyzer': 'word', 'ngram_range': (1, 2), 'token_pattern': '[a-z]+', 'stop_words': 'english', 'lowercase': False} 37292 (12117, 38723)\nNEAR t+j+s systemic norm {'analyzer': 'word', 'ngram_range': (2, 2), 'lowercase': True} 38295 (12117, 38723)\nNEAR t+j+s systemic norm {'analyzer': 'word', 'ngram_range': (2, 2), 'lowercase': False} 38295 (12117, 38723)\nNEAR t+j+s systemic norm {'analyzer': 'word', 'ngram_range': (2, 2), 'token_pattern': '(?u)\\\\b\\\\w+\\\\b', 'lowercase': True} 39274 (12117, 38723)\nNEAR t+j+s systemic norm {'analyzer': 'word', 'ngram_range': (2, 2), 'token_pattern': '(?u)\\\\b\\\\w+\\\\b', 'lowercase': False} 39274 (12117, 38723)\nNEAR t+j+s systemic norm {'analyzer': 'word', 'ngram_range': (2, 2), 'token_pattern': '[a-z0-9]+', 'lowercase': True} 39274 (12117, 38723)\nNEAR t+j+s systemic norm {'analyzer': 'word', 'ngram_range': (2, 2), 'token_pattern': '[a-z0-9]+', 'lowercase': False} 39274 (12117, 38723)\nNEAR t+j+s vascular norm {'analyzer': 'word', 'ngram_range': (2, 2), 'stop_words': 'english', 'lowercase': True} 35622 (12109, 36728)\nNEAR t+j+s vascular norm {'analyzer': 'word', 'ngram_range': (2, 2), 'stop_words': 'english', 'lowercase': False} 35622 (12109, 36728)"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01AkQvJG2Pfy6LEVuCXgf3u7",
+        "type": "function",
+        "function": {
+          "name": "write_file",
+          "arguments": "{\"path\": \"/tmp/exp3.py\", \"content\": \"import json, re, unicodedata, itertools\\nfrom sklearn.feature_extraction.text import TfidfVectorizer\\ndef norm(t):\\n    t=unicodedata.normalize(\\\"NFKC\\\",str(t)).lower()\\n    return re.sub(r\\\"\\\\s+\\\",\\\" \\\",t).strip()\\nrows={}\\nfor d in [\\\"cardiac\\\",\\\"vascular\\\",\\\"systemic\\\"]:\\n    rows[d]=[json.loads(l) for l in open(f\\\"data/cases/{d}_cases.jsonl\\\") if l.strip()]\\nreq=json.load(open(\\\"data/query_facets.json\\\"))[\\\"facets\\\"]\\ntargets={\\\"cardiac\\\":(11375,33684,46,577),\\\"systemic\\\":(12117,38723,29,548),\\\"vascular\\\":(12109,36728,45,495)}\\nFIELDS=[\\\"title\\\",\\\"journal\\\",\\\"final_diagnosis\\\",\\\"case_summary\\\"]\\ndef build(r, keys, lower=True):\\n    t=\\\" \\\".join(str(r.get(k,\\\"\\\")) for k in keys)\\n    return norm(t) if lower else t\\ncombos=[]\\nfor n in range(1,5):\\n    for c in itertools.combinations(FIELDS,n):\\n        combos.append(c)\\nres=[]\\nfor keys in combos:\\n  for lower in [True,False]:\\n    for d in [\\\"cardiac\\\",\\\"systemic\\\",\\\"vascular\\\"]:\\n        docs=[build(r,keys,lower) for r in rows[d]]\\n        q=norm(req[d]) if lower else req[d]\\n        for an,ngs in [(\\\"word\\\",[(1,1),(1,2),(2,2),(1,3)]),(\\\"char\\\",[(2,3),(3,3),(3,4),(2,4),(3,5),(4,5),(2,5),(4,4),(5,5)]),(\\\"char_wb\\\",[(2,3),(3,3),(3,4),(2,4),(3,5),(4,5),(2,5),(4,4),(5,5)])]:\\n            for ng in ngs:\\n                for mdf in [1,2,3,5]:\\n                    for tp in ([None, r\\\"(?u)\\\\b\\\\w+\\\\b\\\"] if an==\\\"word\\\" else [None]):\\n                        for sw in ([None,\\\"english\\\"] if an==\\\"word\\\" else [None]):\\n                            kw=dict(analyzer=an,ngram_range=ng,min_df=mdf)\\n                            if tp: kw[\\\"token_pattern\\\"]=tp\\n                            if sw: kw[\\\"stop_words\\\"]=sw\\n                            if not lower: kw[\\\"lowercase\\\"]=False\\n                            try:\\n                                v=TfidfVectorizer(**kw); v.fit(docs)\\n                            except Exception:\\n                                continue\\n                            nv=len(v.vocabulary_)\\n                            if nv==targets[d][0] or nv==targets[d][1]:\\n                                act=v.transform([q]).nnz\\n                                print(\\\"EXACT\\\", keys, lower, d, kw, \\\"dict\\\",nv,\\\"act\\\",act,\\\"target\\\",targets[d], flush=True)\\n\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01AkQvJG2Pfy6LEVuCXgf3u7",
+    "name": "write_file",
+    "content": "{\"ok\": true, \"wrote\": \"/tmp/exp3.py\", \"bytes\": 2139}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_017oTVTLvbzXrZB8egLxjcw1",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && timeout 3000 python3 /tmp/exp3.py 2>/dev/null | tee /tmp/exp3.out | head -50\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_017oTVTLvbzXrZB8egLxjcw1",
+    "name": "bash",
+    "content": "{\"ok\": false, \"error\": \"tool bash crashed: Command '['docker', 'exec', '-u', 'ubuntu', '-w', '/workspace/target', 'harbor-cpu-ml-engineering-post-pci-clinical-case-retrieval-drift-run', 'bash', '-c', 'cd /workspace/target && timeout 3000 pytho\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01UmqqAboF1xTdsy4gBR1vGq",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && nohup python3 /tmp/exp3.py > /tmp/exp3.out 2>/tmp/exp3.err & echo started\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01UmqqAboF1xTdsy4gBR1vGq",
+    "name": "bash",
+    "content": "started"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01GHtwCABrnjs88mRTk9RRZ6",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 -c \\\"\\nimport json,re\\nf=json.load(open('data/query_facets.json'))['facets']\\nfor k,v in f.items():\\n    toks=re.findall(r'(?u)\\\\b\\\\w\\\\w+\\\\b',v.lower())\\n    print(k,len(v),len(toks),len(set(toks)))\\n\\\"\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01GHtwCABrnjs88mRTk9RRZ6",
+    "name": "bash",
+    "content": "cardiac 314 42 37\nvascular 285 42 35\nsystemic 292 39 35"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01VMC8wKxhd97iC8B8eJ3vBY",
+        "type": "function",
+        "function": {
+          "name": "write_file",
+          "arguments": "{\"path\": \"/tmp/exp4.py\", \"content\": \"import json, re, unicodedata, itertools\\nfrom sklearn.feature_extraction.text import TfidfVectorizer\\ndef norm(t):\\n    t=unicodedata.normalize(\\\"NFKC\\\",str(t)).lower()\\n    return re.sub(r\\\"\\\\s+\\\",\\\" \\\",t).strip()\\nrows={}\\nfor d in [\\\"cardiac\\\",\\\"vascular\\\",\\\"systemic\\\"]:\\n    rows[d]=[json.loads(l) for l in open(f\\\"data/cases/{d}_cases.jsonl\\\") if l.strip()]\\nreq=json.load(open(\\\"data/query_facets.json\\\"))[\\\"facets\\\"]\\ntargets={\\\"cardiac\\\":(11375,33684,46,577),\\\"systemic\\\":(12117,38723,29,548),\\\"vascular\\\":(12109,36728,45,495)}\\nFIELDS=[\\\"title\\\",\\\"journal\\\",\\\"final_diagnosis\\\",\\\"case_summary\\\"]\\nfor keys in [(\\\"title\\\",\\\"case_summary\\\"),(\\\"title\\\",\\\"case_summary\\\",\\\"final_diagnosis\\\"),(\\\"title\\\",\\\"journal\\\",\\\"case_summary\\\"),(\\\"case_summary\\\",),(\\\"title\\\",\\\"journal\\\",\\\"final_diagnosis\\\",\\\"case_summary\\\")]:\\n    for d in [\\\"cardiac\\\",\\\"systemic\\\",\\\"vascular\\\"]:\\n        docs=[norm(\\\" \\\".join(str(r.get(k,\\\"\\\")) for k in keys)) for r in rows[d]]\\n        q=norm(req[d])\\n        for ng in [(1,2),(1,3),(1,1)]:\\n            for mdf in [1,2,3,4,5]:\\n                for sw in [None,\\\"english\\\"]:\\n                    kw=dict(analyzer=\\\"word\\\",ngram_range=ng,min_df=mdf)\\n                    if sw: kw[\\\"stop_words\\\"]=sw\\n                    v=TfidfVectorizer(**kw); v.fit(docs)\\n                    nv=len(v.vocabulary_); act=v.transform([q]).nnz\\n                    print(keys,d,ng,mdf,sw,\\\"dict\\\",nv,\\\"act\\\",act,\\\"target\\\",targets[d][0],targets[d][2], flush=True)\\n\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01VMC8wKxhd97iC8B8eJ3vBY",
+    "name": "write_file",
+    "content": "{\"ok\": true, \"wrote\": \"/tmp/exp4.py\", \"bytes\": 1377}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_012Jcqf3tcVaD5NWgRungToV",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 /tmp/exp4.py 2>/dev/null | grep -E \\\"cardiac\\\" | head -60\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_012Jcqf3tcVaD5NWgRungToV",
+    "name": "bash",
+    "content": "{\"ok\": false, \"error\": \"tool bash crashed: Command '['docker', 'exec', '-u', 'ubuntu', '-w', '/workspace/target', 'harbor-cpu-ml-engineering-post-pci-clinical-case-retrieval-drift-run', 'bash', '-c', 'cd /workspace/target && python3 /tmp/exp4.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01YQZ3Tt4uco357YX99kaohf",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 /tmp/exp4.py > /tmp/exp4.out 2>/dev/null; wc -l /tmp/exp4.out\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01YQZ3Tt4uco357YX99kaohf",
+    "name": "bash",
+    "content": "{\"ok\": false, \"error\": \"tool bash crashed: Command '['docker', 'exec', '-u', 'ubuntu', '-w', '/workspace/target', 'harbor-cpu-ml-engineering-post-pci-clinical-case-retrieval-drift-run', 'bash', '-c', 'cd /workspace/target && python3 /tmp/exp4.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01BiudaoGvEZQ4MRFitVyD6L",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && nohup python3 /tmp/exp4.py > /tmp/exp4.out 2>/tmp/exp4.err & sleep 30; wc -l /tmp/exp4.out\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01BiudaoGvEZQ4MRFitVyD6L",
+    "name": "bash",
+    "content": "108 /tmp/exp4.out"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_013oyYGmePxHLycL5Z2wN8W1",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && sleep 40; grep cardiac /tmp/exp4.out | head -60\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_013oyYGmePxHLycL5Z2wN8W1",
+    "name": "bash",
+    "content": "grep: /tmp/exp4.out: binary file matches"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01N9LYEqZW4R3NeXFkYFESVj",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && grep -a cardiac /tmp/exp4.out | head -70\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01N9LYEqZW4R3NeXFkYFESVj",
+    "name": "bash",
+    "content": "('title', 'case_summary') cardiac (1, 2) 1 None dict 39079 act 57 target 11375 46\n('title', 'case_summary') cardiac (1, 2) 1 english dict 36322 act 42 target 11375 46\n('title', 'case_summary') cardiac (1, 2) 2 None dict 11380 act 51 target 11375 46\n('title', 'case_summary') cardiac (1, 2) 2 english dict 8754 act 39 target 11375 46\n('title', 'case_summary') cardiac (1, 2) 3 None dict 7000 act 50 target 11375 46\n('title', 'case_summary') cardiac (1, 2) 3 english dict 5226 act 37 target 11375 46\n('title', 'case_summary') cardiac (1, 2) 4 None dict 5040 act 50 target 11375 46\n('title', 'case_summary') cardiac (1, 2) 4 english dict 3737 act 37 target 11375 46\n('title', 'case_summary') cardiac (1, 2) 5 None dict 3947 act 48 target 11375 46\n('title', 'case_summary') cardiac (1, 2) 5 english dict 2929 act 36 target 11375 46\n('title', 'case_summary') cardiac (1, 3) 1 None dict 92052 act 65 target 11375 46\n('title', 'case_summary') cardiac (1, 3) 1 english dict 79524 act 45 target 11375 46\n('title', 'case_summary') cardiac (1, 3) 2 None dict 18234 act 58 target 11375 46\n('title', 'case_summary') cardiac (1, 3) 2 english dict 12895 act 41 target 11375 46\n('title', 'case_summary') cardiac (1, 3) 3 None dict 10245 act 56 target 11375 46\n('title', 'case_summary') cardiac (1, 3) 3 english dict 7101 act 39 target 11375 46\n('title', 'case_summary') cardiac (1, 3) 4 None dict 7037 act 55 target 11375 46\n('title', 'case_summary') cardiac (1, 3) 4 english dict 4870 act 39 target 11375 46\n('title', 'case_summary') cardiac (1, 3) 5 None dict 5331 act 52 target 11375 46\n('title', 'case_summary') cardiac (1, 3) 5 english dict 3698 act 38 target 11375 46\n('title', 'case_summary') cardiac (1, 1) 1 None dict 6142 act 36 target 11375 46\n('title', 'case_summary') cardiac (1, 1) 1 english dict 5971 act 29 target 11375 46\n('title', 'case_summary') cardiac (1, 1) 2 None dict 3245 act 36 target 11375 46\n('title', 'case_summary') cardiac (1, 1) 2 english dict 3105 act 29 target 11375 46\n('title', 'case_summary') cardiac (1, 1) 3 None dict 2430 act 35 target 11375 46\n('title', 'case_summary') cardiac (1, 1) 3 english dict 2303 act 28 target 11375 46\n('title', 'case_summary') cardiac (1, 1) 4 None dict 1960 act 35 target 11375 46\n('title', 'case_summary') cardiac (1, 1) 4 english dict 1847 act 28 target 11375 46\n('title', 'case_summary') cardiac (1, 1) 5 None dict 1687 act 35 target 11375 46\n('title', 'case_summary') cardiac (1, 1) 5 english dict 1579 act 28 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 2) 1 None dict 39734 act 57 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 2) 1 english dict 36986 act 42 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 2) 2 None dict 11452 act 51 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 2) 2 english dict 8820 act 39 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 2) 3 None dict 7042 act 50 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 2) 3 english dict 5264 act 37 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 2) 4 None dict 5067 act 50 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 2) 4 english dict 3764 act 37 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 2) 5 None dict 3966 act 48 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 2) 5 english dict 2948 act 36 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 3) 1 None dict 93715 act 65 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 3) 1 english dict 81193 act 45 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 3) 2 None dict 18342 act 58 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 3) 2 english dict 12991 act 41 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 3) 3 None dict 10307 act 56 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 3) 3 english dict 7154 act 39 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 3) 4 None dict 7073 act 55 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 3) 4 english dict 4904 act 39 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 3) 5 None dict 5357 act 52 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 3) 5 english dict 3724 act 38 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 1) 1 None dict 6207 act 36 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 1) 1 english dict 6036 act 29 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 1) 2 None dict 3270 act 36 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 1) 2 english dict 3130 act 29 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 1) 3 None dict 2443 act 35 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 1) 3 english dict 2316 act 28 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 1) 4 None dict 1970 act 35 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 1) 4 english dict 1857 act 28 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 1) 5 None dict 1695 act 35 target 11375 46\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 1) 5 english dict 1587 act 28 target 11375 46\n\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01TnBfKnWRVhHr22ijbTRmwd",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && wc -l /tmp/exp3.out; cat /tmp/exp3.out | head -30; tail -3 /tmp/exp3.err\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01TnBfKnWRVhHr22ijbTRmwd",
+    "name": "bash",
+    "content": "0 /tmp/exp3.out"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_019frVfFGBpoHzXyDuy6M4Rb",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && grep -a \\\"(1, 2) 2 None\\\" /tmp/exp4.out\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_019frVfFGBpoHzXyDuy6M4Rb",
+    "name": "bash",
+    "content": "('title', 'case_summary') cardiac (1, 2) 2 None dict 11380 act 51 target 11375 46\n('title', 'case_summary') systemic (1, 2) 2 None dict 12120 act 30 target 12117 29\n('title', 'case_summary') vascular (1, 2) 2 None dict 12111 act 46 target 12109 45\n('title', 'case_summary', 'final_diagnosis') cardiac (1, 2) 2 None dict 11452 act 51 target 11375 46\n('title', 'case_summary', 'final_diagnosis') systemic (1, 2) 2 None dict 12176 act 31 target 12117 29\n('title', 'case_summary', 'final_diagnosis') vascular (1, 2) 2 None dict 12168 act 46 target 12109 45\n('title', 'journal', 'case_summary') cardiac (1, 2) 2 None dict 11579 act 51 target 11375 46\n('case_summary',) cardiac (1, 2) 2 None dict 10516 act 51 target 11375 46\n('case_summary',) systemic (1, 2) 2 None dict 11137 act 29 target 12117 29\n('case_summary',) vascular (1, 2) 2 None dict 11187 act 46 target 12109 45\n('title', 'journal', 'final_diagnosis', 'case_summary') cardiac (1, 2) 2 None dict 11656 act 51 target 11375 46\n('title', 'journal', 'final_diagnosis', 'case_summary') systemic (1, 2) 2 None dict 12403 act 31 target 12117 29\n('title', 'journal', 'final_diagnosis', 'case_summary') vascular (1, 2) 2 None dict 12415 act 46 target 12109 45"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01QyMPEMyD8qPW64GnHrAqeA",
+        "type": "function",
+        "function": {
+          "name": "write_file",
+          "arguments": "{\"path\": \"/tmp/exp5.py\", \"content\": \"import json, re, unicodedata, itertools\\nfrom sklearn.feature_extraction.text import TfidfVectorizer\\nrows={}\\nfor d in [\\\"cardiac\\\",\\\"vascular\\\",\\\"systemic\\\"]:\\n    rows[d]=[json.loads(l) for l in open(f\\\"data/cases/{d}_cases.jsonl\\\") if l.strip()]\\nreq=json.load(open(\\\"data/query_facets.json\\\"))[\\\"facets\\\"]\\ntargets={\\\"cardiac\\\":(11375,33684,46,577),\\\"systemic\\\":(12117,38723,29,548),\\\"vascular\\\":(12109,36728,45,495)}\\n\\ndef n_basic(t):\\n    t=unicodedata.normalize(\\\"NFKC\\\",str(t)).lower()\\n    return re.sub(r\\\"\\\\s+\\\",\\\" \\\",t).strip()\\ndef n_nopunct(t):\\n    t=unicodedata.normalize(\\\"NFKC\\\",str(t)).lower()\\n    t=re.sub(r\\\"[^a-z0-9\\\\s]\\\",\\\" \\\",t)\\n    return re.sub(r\\\"\\\\s+\\\",\\\" \\\",t).strip()\\ndef n_nfkd(t):\\n    t=unicodedata.normalize(\\\"NFKD\\\",str(t)).lower()\\n    t=\\\"\\\".join(c for c in t if not unicodedata.combining(c))\\n    return re.sub(r\\\"\\\\s+\\\",\\\" \\\",t).strip()\\ndef n_raw(t):\\n    return str(t)\\nnorms={\\\"basic\\\":n_basic,\\\"nopunct\\\":n_nopunct,\\\"nfkd\\\":n_nfkd,\\\"raw\\\":n_raw}\\nfieldsets={\\\"t+s\\\":(\\\"title\\\",\\\"case_summary\\\"),\\\"s\\\":(\\\"case_summary\\\",),\\\"t+s+d\\\":(\\\"title\\\",\\\"case_summary\\\",\\\"final_diagnosis\\\"),\\\"t+j+s\\\":(\\\"title\\\",\\\"journal\\\",\\\"case_summary\\\")}\\nprint(\\\"=== view_a candidates (word) ===\\\")\\nfor nn,nf in norms.items():\\n  for fn,keys in fieldsets.items():\\n    for d in [\\\"cardiac\\\",\\\"systemic\\\",\\\"vascular\\\"]:\\n        docs=[nf(\\\" \\\".join(str(r.get(k,\\\"\\\")) for k in keys)) for r in rows[d]]\\n        q=nf(req[d])\\n        for ng in [(1,2)]:\\n            for mdf in [2]:\\n                for sa in [None,\\\"unicode\\\"]:\\n                    for tp in [None, r\\\"(?u)\\\\b\\\\w+\\\\b\\\", r\\\"(?u)\\\\b[a-z]{2,}\\\\b\\\"]:\\n                        kw=dict(ngram_range=ng,min_df=mdf)\\n                        if sa: kw[\\\"strip_accents\\\"]=sa\\n                        if tp: kw[\\\"token_pattern\\\"]=tp\\n                        v=TfidfVectorizer(**kw); v.fit(docs)\\n                        nv=len(v.vocabulary_); act=v.transform([q]).nnz\\n                        flag=\\\"**\\\" if nv==targets[d][0] and act==targets[d][2] else (\\\"*\\\" if nv==targets[d][0] or act==targets[d][2] else \\\"\\\")\\n                        print(flag,nn,fn,d,kw,nv,act,targets[d][0],targets[d][2],flush=True)\\n\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01QyMPEMyD8qPW64GnHrAqeA",
+    "name": "write_file",
+    "content": "{\"ok\": true, \"wrote\": \"/tmp/exp5.py\", \"bytes\": 2038}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01MoBibBZBQNxvRaKDVREsmy",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && nohup python3 /tmp/exp5.py > /tmp/exp5.out 2>&1 & sleep 90; grep -a '^\\\\*' /tmp/exp5.out | head -40; echo ...; wc -l /tmp/exp5.out\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01MoBibBZBQNxvRaKDVREsmy",
+    "name": "bash",
+    "content": "* basic t+s vascular {'ngram_range': (1, 2), 'min_df': 2, 'token_pattern': '(?u)\\\\b[a-z]{2,}\\\\b'} 11522 45 12109 45\n* basic t+s vascular {'ngram_range': (1, 2), 'min_df': 2, 'strip_accents': 'unicode', 'token_pattern': '(?u)\\\\b[a-z]{2,}\\\\b'} 11522 45 12109 45\n* basic s systemic {'ngram_range': (1, 2), 'min_df': 2} 11137 29 12117 29\n* basic s systemic {'ngram_range': (1, 2), 'min_df': 2, 'token_pattern': '(?u)\\\\b\\\\w+\\\\b'} 11946 29 12117 29\n* basic s systemic {'ngram_range': (1, 2), 'min_df': 2, 'token_pattern': '(?u)\\\\b[a-z]{2,}\\\\b'} 10191 29 12117 29\n* basic s systemic {'ngram_range': (1, 2), 'min_df': 2, 'strip_accents': 'unicode'} 11137 29 12117 29\n* basic s systemic {'ngram_range': (1, 2), 'min_df': 2, 'strip_accents': 'unicode', 'token_pattern': '(?u)\\\\b\\\\w+\\\\b'} 11946 29 12117 29\n* basic s systemic {'ngram_range': (1, 2), 'min_df': 2, 'strip_accents': 'unicode', 'token_pattern': '(?u)\\\\b[a-z]{2,}\\\\b'} 10191 29 12117 29\n* basic s vascular {'ngram_range': (1, 2), 'min_df': 2, 'token_pattern': '(?u)\\\\b[a-z]{2,}\\\\b'} 10613 45 12109 45\n* basic s vascular {'ngram_range': (1, 2), 'min_df': 2, 'strip_accents': 'unicode', 'token_pattern': '(?u)\\\\b[a-z]{2,}\\\\b'} 10613 45 12109 45\n* basic t+s+d vascular {'ngram_range': (1, 2), 'min_df': 2, 'token_pattern': '(?u)\\\\b[a-z]{2,}\\\\b'} 11579 45 12109 45\n* basic t+s+d vascular {'ngram_range': (1, 2), 'min_df': 2, 'strip_accents': 'unicode', 'token_pattern': '(?u)\\\\b[a-z]{2,}\\\\b'} 11579 45 12109 45\n* basic t+j+s vascular {'ngram_range': (1, 2), 'min_df': 2, 'token_pattern': '(?u)\\\\b[a-z]{2,}\\\\b'} 11761 45 12109 45\n* basic t+j+s vascular {'ngram_range': (1, 2), 'min_df': 2, 'strip_accents': 'unicode', 'token_pattern': '(?u)\\\\b[a-z]{2,}\\\\b'} 11761 45 12109 45\n* nopunct t+s vascular {'ngram_range': (1, 2), 'min_df': 2, 'token_pattern': '(?u)\\\\b[a-z]{2,}\\\\b'} 11524 45 12109 45\n* nopunct t+s vascular {'ngram_range': (1, 2), 'min_df': 2, 'strip_accents': 'unicode', 'token_pattern': '(?u)\\\\b[a-z]{2,}\\\\b'} 11524 45 12109 45\n* nopunct s systemic {'ngram_range': (1, 2), 'min_df': 2} 11137 29 12117 29\n* nopunct s systemic {'ngram_range': (1, 2), 'min_df': 2, 'token_pattern': '(?u)\\\\b\\\\w+\\\\b'} 11946 29 12117 29\n* nopunct s systemic {'ngram_range': (1, 2), 'min_df': 2, 'token_pattern': '(?u)\\\\b[a-z]{2,}\\\\b'} 10191 29 12117 29\n* nopunct s systemic {'ngram_range': (1, 2), 'min_df': 2, 'strip_accents': 'unicode'} 11137 29 12117 29\n* nopunct s systemic {'ngram_range': (1, 2), 'min_df': 2, 'strip_accents': 'unicode', 'token_pattern': '(?u)\\\\b\\\\w+\\\\b'} 11946 29 12117 29\n* nopunct s systemic {'ngram_range': (1, 2), 'min_df': 2, 'strip_accents': 'unicode', 'token_pattern': '(?u)\\\\b[a-z]{2,}\\\\b'} 10191 29 12117 29\n* nopunct s vascular {'ngram_range': (1, 2), 'min_df': 2, 'token_pattern': '(?u)\\\\b[a-z]{2,}\\\\b'} 10615 45 12109 45\n* nopunct s vascular {'ngram_range': (1, 2), 'min_df': 2, 'strip_accents': 'unicode', 'token_pattern': '(?u)\\\\b[a-z]{2,}\\\\b'} 10615 45 12109 45\n* nopunct t+s+d vascular {'ngram_range': (1, 2), 'min_df': 2, 'token_pattern': '(?u)\\\\b[a-z]{2,}\\\\b'} 11581 45 12109 45\n* nopunct t+s+d vascular {'ngram_range': (1, 2), 'min_df': 2, 'strip_accents': 'unicode', 'token_pattern': '(?u)\\\\b[a-z]{2,}\\\\b'} 11581 45 12109 45\n* nopunct t+j+s vascular {'ngram_range': (1, 2), 'min_df': 2, 'token_pattern': '(?u)\\\\b[a-z]{2,}\\\\b'} 11763 45 12109 45\n* nopunct t+j+s vascular {'ngram_range': (1, 2), 'min_df': 2, 'strip_accents': 'unicode', 'token_pattern': '(?u)\\\\b[a-z]{2,}\\\\b'} 11763 45 12109 45\n* nfkd t+s vascular {'ngram_range': (1, 2), 'min_df': 2, 'token_pattern': '(?u)\\\\b[a-z]{2,}\\\\b'} 11522 45 12109 45\n...\n160 /tmp/exp5.out"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01WVER1sBBF7RkzpCq1phQYz",
+        "type": "function",
+        "function": {
+          "name": "write_file",
+          "arguments": "{\"path\": \"/tmp/exp6.py\", \"content\": \"import json, re, unicodedata\\nfrom sklearn.feature_extraction.text import TfidfVectorizer\\nrows={}\\nfor d in [\\\"cardiac\\\",\\\"vascular\\\",\\\"systemic\\\"]:\\n    rows[d]=[json.loads(l) for l in open(f\\\"data/cases/{d}_cases.jsonl\\\") if l.strip()]\\nreq=json.load(open(\\\"data/query_facets.json\\\"))[\\\"facets\\\"]\\nT={\\\"cardiac\\\":(11375,33684,46,577),\\\"systemic\\\":(12117,38723,29,548),\\\"vascular\\\":(12109,36728,45,495)}\\ndef norm(t):\\n    t=unicodedata.normalize(\\\"NFKC\\\",str(t)).lower()\\n    return re.sub(r\\\"\\\\s+\\\",\\\" \\\",t).strip()\\ndocs={d:[norm(\\\" \\\".join([r[\\\"title\\\"],r[\\\"case_summary\\\"]])) for r in rows[d]] for d in rows}\\nqs={d:norm(req[d]) for d in rows}\\nprint(\\\"--- max_df sweep word (1,2) min_df=2 ---\\\")\\nfor mx in [1.0,0.99,0.98,0.95,0.9,0.85,0.8,0.7,0.6,0.5]:\\n    out=[]\\n    for d in [\\\"cardiac\\\",\\\"systemic\\\",\\\"vascular\\\"]:\\n        v=TfidfVectorizer(ngram_range=(1,2),min_df=2,max_df=mx); v.fit(docs[d])\\n        out.append((d,len(v.vocabulary_),v.transform([qs[d]]).nnz,T[d][0],T[d][2]))\\n    print(mx,out,flush=True)\\nprint(\\\"--- char analyzers cardiac ---\\\")\\nfor an in [\\\"char\\\",\\\"char_wb\\\"]:\\n    for ng in [(2,3),(3,4),(3,5),(4,5),(2,4),(2,5),(3,3),(4,4),(5,5),(4,6),(3,6)]:\\n        for mdf in [1,2,3,5,10]:\\n            v=TfidfVectorizer(analyzer=an,ngram_range=ng,min_df=mdf)\\n            v.fit(docs[\\\"cardiac\\\"])\\n            nv=len(v.vocabulary_)\\n            if abs(nv-33684)<3000:\\n                print(an,ng,mdf,nv,v.transform([qs[\\\"cardiac\\\"]]).nnz,flush=True)\\n\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01WVER1sBBF7RkzpCq1phQYz",
+    "name": "write_file",
+    "content": "{\"ok\": true, \"wrote\": \"/tmp/exp6.py\", \"bytes\": 1407}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01MNQRdDWs7dVfnRyPWUvqGf",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && nohup python3 /tmp/exp6.py > /tmp/exp6.out 2>&1 & sleep 60; cat /tmp/exp6.out\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01MNQRdDWs7dVfnRyPWUvqGf",
+    "name": "bash",
+    "content": "--- max_df sweep word (1,2) min_df=2 ---\n1.0 [('cardiac', 11380, 51, 11375, 46), ('systemic', 12120, 30, 12117, 29), ('vascular', 12111, 46, 12109, 45)]\n0.99 [('cardiac', 11379, 50, 11375, 46), ('systemic', 12119, 29, 12117, 29), ('vascular', 12109, 45, 12109, 45)]\n0.98 [('cardiac', 11375, 46, 11375, 46), ('systemic', 12117, 29, 12117, 29), ('vascular', 12109, 45, 12109, 45)]\n0.95 [('cardiac', 11373, 45, 11375, 46), ('systemic', 12115, 29, 12117, 29), ('vascular', 12105, 44, 12109, 45)]\n0.9 [('cardiac', 11373, 45, 11375, 46), ('systemic', 12112, 29, 12117, 29), ('vascular', 12103, 44, 12109, 45)]\n0.85 [('cardiac', 11370, 43, 11375, 46), ('systemic', 12111, 29, 12117, 29), ('vascular', 12102, 44, 12109, 45)]\n0.8 [('cardiac', 11370, 43, 11375, 46), ('systemic', 12111, 29, 12117, 29), ('vascular', 12100, 43, 12109, 45)]\n0.7 [('cardiac', 11365, 43, 11375, 46), ('systemic', 12107, 29, 12117, 29), ('vascular', 12098, 42, 12109, 45)]\n0.6 [('cardiac', 11353, 41, 11375, 46), ('systemic', 12100, 27, 12117, 29), ('vascular', 12090, 40, 12109, 45)]\n0.5 [('cardiac', 11343, 41, 11375, 46), ('systemic', 12088, 26, 12117, 29), ('vascular', 12081, 38, 12109, 45)]\n--- char analyzers cardiac ---\nchar (3, 5) 5 31809 732"
+  },
+  {
+    "role": "assistant",
+    "content": "Excellent \u2014 view_a identified exactly. Now find view_b.",
+    "tool_calls": [
+      {
+        "id": "toolu_01C9zdkNSecXPyVnryVnqZhd",
+        "type": "function",
+        "function": {
+          "name": "write_file",
+          "arguments": "{\"path\": \"/tmp/exp7.py\", \"content\": \"import json, re, unicodedata\\nfrom sklearn.feature_extraction.text import TfidfVectorizer\\nrows={}\\nfor d in [\\\"cardiac\\\",\\\"vascular\\\",\\\"systemic\\\"]:\\n    rows[d]=[json.loads(l) for l in open(f\\\"data/cases/{d}_cases.jsonl\\\") if l.strip()]\\nreq=json.load(open(\\\"data/query_facets.json\\\"))[\\\"facets\\\"]\\nT={\\\"cardiac\\\":(33684,577),\\\"systemic\\\":(38723,548),\\\"vascular\\\":(36728,495)}\\ndef norm(t):\\n    t=unicodedata.normalize(\\\"NFKC\\\",str(t)).lower()\\n    return re.sub(r\\\"\\\\s+\\\",\\\" \\\",t).strip()\\ndocs={d:[norm(\\\" \\\".join([r[\\\"title\\\"],r[\\\"case_summary\\\"]])) for r in rows[d]] for d in rows}\\nqs={d:norm(req[d]) for d in rows}\\nfor an in [\\\"char\\\",\\\"char_wb\\\"]:\\n    for ng in [(2,3),(3,4),(3,5),(4,5),(2,4),(2,5),(3,3),(4,4),(5,5),(4,6),(5,6),(3,6),(2,6)]:\\n        for mdf in [1,2,3,4,5,10]:\\n            for mx in [1.0,0.98,0.95,0.9]:\\n                v=TfidfVectorizer(analyzer=an,ngram_range=ng,min_df=mdf,max_df=mx)\\n                v.fit(docs[\\\"cardiac\\\"])\\n                nv=len(v.vocabulary_)\\n                if abs(nv-T[\\\"cardiac\\\"][0])<600:\\n                    act=v.transform([qs[\\\"cardiac\\\"]]).nnz\\n                    print(an,ng,mdf,mx,nv,act,T[\\\"cardiac\\\"],flush=True)\\n\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01C9zdkNSecXPyVnryVnqZhd",
+    "name": "write_file",
+    "content": "{\"ok\": true, \"wrote\": \"/tmp/exp7.py\", \"bytes\": 1121}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01KjCPgDJ75tpLDWPDX5cog3",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && nohup python3 /tmp/exp7.py > /tmp/exp7.out 2>&1 & sleep 120; cat /tmp/exp7.out\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01KjCPgDJ75tpLDWPDX5cog3",
+    "name": "bash",
+    "content": "{\"ok\": false, \"error\": \"tool bash crashed: Command '['docker', 'exec', '-u', 'ubuntu', '-w', '/workspace/target', 'harbor-cpu-ml-engineering-post-pci-clinical-case-retrieval-drift-run', 'bash', '-c', 'cd /workspace/target && nohup python3 /tmp\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01AzQ6gTR8XX8hinGjDn7TQP",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cat /tmp/exp7.out\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01AzQ6gTR8XX8hinGjDn7TQP",
+    "name": "bash",
+    "content": "(no output)"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01Sk9J9qRpjxztyeqrz6ybPW",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"sleep 120; cat /tmp/exp7.out; ps aux|grep -c exp7\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01Sk9J9qRpjxztyeqrz6ybPW",
+    "name": "bash",
+    "content": "{\"ok\": false, \"error\": \"tool bash crashed: Command '['docker', 'exec', '-u', 'ubuntu', '-w', '/workspace/target', 'harbor-cpu-ml-engineering-post-pci-clinical-case-retrieval-drift-run', 'bash', '-c', 'sleep 120; cat /tmp/exp7.out; ps aux|grep \"}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_014f9wCD7qxA9cGP95UPCeXy",
+        "type": "function",
+        "function": {
+          "name": "write_file",
+          "arguments": "{\"path\": \"/tmp/exp8.py\", \"content\": \"import json, re, unicodedata\\nfrom sklearn.feature_extraction.text import TfidfVectorizer\\nrows={}\\nfor d in [\\\"cardiac\\\",\\\"vascular\\\",\\\"systemic\\\"]:\\n    rows[d]=[json.loads(l) for l in open(f\\\"data/cases/{d}_cases.jsonl\\\") if l.strip()]\\nreq=json.load(open(\\\"data/query_facets.json\\\"))[\\\"facets\\\"]\\nT={\\\"cardiac\\\":(33684,577),\\\"systemic\\\":(38723,548),\\\"vascular\\\":(36728,495)}\\ndef norm(t):\\n    t=unicodedata.normalize(\\\"NFKC\\\",str(t)).lower()\\n    return re.sub(r\\\"\\\\s+\\\",\\\" \\\",t).strip()\\ndocs={d:[norm(\\\" \\\".join([r[\\\"title\\\"],r[\\\"case_summary\\\"]])) for r in rows[d]] for d in rows}\\nqs={d:norm(req[d]) for d in rows}\\nimport sys\\nfor an in [\\\"char\\\",\\\"char_wb\\\"]:\\n  for ng in [(3,4),(2,3),(4,5)]:\\n    for mdf in [1,2,3]:\\n        v=TfidfVectorizer(analyzer=an,ngram_range=ng,min_df=mdf)\\n        v.fit(docs[\\\"cardiac\\\"]); nv=len(v.vocabulary_); act=v.transform([qs[\\\"cardiac\\\"]]).nnz\\n        print(an,ng,mdf,nv,act,T[\\\"cardiac\\\"],flush=True)\\n\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_014f9wCD7qxA9cGP95UPCeXy",
+    "name": "write_file",
+    "content": "{\"ok\": true, \"wrote\": \"/tmp/exp8.py\", \"bytes\": 893}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01HMF5j8i73sRWFpxwhBY2tE",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && (nohup python3 /tmp/exp8.py > /tmp/exp8.out 2>&1 &) ; sleep 100; cat /tmp/exp8.out\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01HMF5j8i73sRWFpxwhBY2tE",
+    "name": "bash",
+    "content": "char (3, 4) 1 42312 506 (33684, 577)\nchar (3, 4) 2 27113 504 (33684, 577)\nchar (3, 4) 3 21496 501 (33684, 577)\nchar (2, 3) 1 11128 399 (33684, 577)\nchar (2, 3) 2 8401 399 (33684, 577)\nchar (2, 3) 3 7205 399 (33684, 577)\nchar (4, 5) 1 98627 521 (33684, 577)\nchar (4, 5) 2 53099 512 (33684, 577)\nchar (4, 5) 3 38966 503 (33684, 577)\nchar_wb (3, 4) 1 29856 410 (33684, 577)\nchar_wb (3, 4) 2 18891 410 (33684, 577)\nchar_wb (3, 4) 3 15043 409 (33684, 577)\nchar_wb (2, 3) 1 9915 371 (33684, 577)\nchar_wb (2, 3) 2 7390 371 (33684, 577)\nchar_wb (2, 3) 3 6315 371 (33684, 577)\nchar_wb (4, 5) 1 49854 362 (33684, 577)\nchar_wb (4, 5) 2 27450 362 (33684, 577)\nchar_wb (4, 5) 3 20645 359 (33684, 577)"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_0153bmWw9M4iBHKpDnVhg5eJ",
+        "type": "function",
+        "function": {
+          "name": "write_file",
+          "arguments": "{\"path\": \"/tmp/exp9.py\", \"content\": \"import json, re, unicodedata\\nfrom sklearn.feature_extraction.text import TfidfVectorizer\\nrows={}\\nfor d in [\\\"cardiac\\\",\\\"vascular\\\",\\\"systemic\\\"]:\\n    rows[d]=[json.loads(l) for l in open(f\\\"data/cases/{d}_cases.jsonl\\\") if l.strip()]\\nreq=json.load(open(\\\"data/query_facets.json\\\"))[\\\"facets\\\"]\\nT={\\\"cardiac\\\":(33684,577),\\\"systemic\\\":(38723,548),\\\"vascular\\\":(36728,495)}\\ndef norm(t):\\n    t=unicodedata.normalize(\\\"NFKC\\\",str(t)).lower()\\n    return re.sub(r\\\"\\\\s+\\\",\\\" \\\",t).strip()\\ndocs={d:[norm(\\\" \\\".join([r[\\\"title\\\"],r[\\\"case_summary\\\"]])) for r in rows[d]] for d in rows}\\nqs={d:norm(req[d]) for d in rows}\\nfor an,ng in [(\\\"char\\\",(3,5)),(\\\"char_wb\\\",(3,5)),(\\\"char\\\",(2,4)),(\\\"char_wb\\\",(2,4)),(\\\"char\\\",(2,5)),(\\\"char_wb\\\",(2,5)),(\\\"char\\\",(4,6)),(\\\"char_wb\\\",(4,6))]:\\n    for mdf in [2,3,4,5,6,8,10]:\\n        v=TfidfVectorizer(analyzer=an,ngram_range=ng,min_df=mdf)\\n        v.fit(docs[\\\"cardiac\\\"]); nv=len(v.vocabulary_)\\n        act=v.transform([qs[\\\"cardiac\\\"]]).nnz\\n        print(an,ng,mdf,nv,act,T[\\\"cardiac\\\"],flush=True)\\n\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_0153bmWw9M4iBHKpDnVhg5eJ",
+    "name": "write_file",
+    "content": "{\"ok\": true, \"wrote\": \"/tmp/exp9.py\", \"bytes\": 983}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01BRxv5KvWzbKQWb1TXf4DKE",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && (nohup python3 /tmp/exp9.py > /tmp/exp9.out 2>&1 &) ; sleep 150; cat /tmp/exp9.out\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01BRxv5KvWzbKQWb1TXf4DKE",
+    "name": "bash",
+    "content": "{\"ok\": false, \"error\": \"tool bash crashed: Command '['docker', 'exec', '-u', 'ubuntu', '-w', '/workspace/target', 'harbor-cpu-ml-engineering-post-pci-clinical-case-retrieval-drift-run', 'bash', '-c', 'cd /workspace/target && (nohup python3 /tm\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01Pb8PHh7hLcPQs3JFRED58M",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"sleep 60; cat /tmp/exp9.out\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01Pb8PHh7hLcPQs3JFRED58M",
+    "name": "bash",
+    "content": "char (3, 5) 2 60378 757 (33684, 577)\nchar (3, 5) 3 45122 748 (33684, 577)\nchar (3, 5) 4 36952 741 (33684, 577)\nchar (3, 5) 5 31809 732 (33684, 577)\nchar (3, 5) 6 28034 724 (33684, 577)\nchar (3, 5) 8 23168 713 (33684, 577)\nchar (3, 5) 10 19817 708 (33684, 577)\nchar_wb (3, 5) 2 33684 577 (33684, 577)\nchar_wb (3, 5) 3 25881 574 (33684, 577)\nchar_wb (3, 5) 4 21532 574 (33684, 577)\nchar_wb (3, 5) 5 18885 570 (33684, 577)\nchar_wb (3, 5) 6 16844 566 (33684, 577)\nchar_wb (3, 5) 8 14347 560 (33684, 577)\nchar_wb (3, 5) 10 12509 555 (33684, 577)\nchar (2, 4) 2 28235 658 (33684, 577)\nchar (2, 4) 3 22545 655 (33684, 577)\nchar (2, 4) 4 19321 653 (33684, 577)\nchar (2, 4) 5 17197 651 (33684, 577)\nchar (2, 4) 6 15527 645 (33684, 577)\nchar (2, 4) 8 13415 641 (33684, 577)\nchar (2, 4) 10 11830 637 (33684, 577)\nchar_wb (2, 4) 2 20015 566 (33684, 577)\nchar_wb (2, 4) 3 16093 565 (33684, 577)\nchar_wb (2, 4) 4 13795 565 (33684, 577)\nchar_wb (2, 4) 5 12348 564 (33684, 577)\nchar_wb (2, 4) 6 11185 560 (33684, 577)\nchar_wb (2, 4) 8 9771 557 (33684, 577)\nchar_wb (2, 4) 10 8695 554 (33684, 577)\nchar (2, 5) 2 61500 911 (33684, 577)\nchar (2, 5) 3 46171 902 (33684, 577)\nchar (2, 5) 4 37958 895 (33684, 577)\nchar (2, 5) 5 32769 886 (33684, 577)\nchar (2, 5) 6 28967 878 (33684, 577)\nchar (2, 5) 8 24067 867 (33684, 577)\nchar (2, 5) 10 20687 862 (33684, 577)\nchar_wb (2, 5) 2 34808 733 (33684, 577)\nchar_wb (2, 5) 3 26931 730 (33684, 577)\nchar_wb (2, 5) 4 22538 730 (33684, 577)\nchar_wb (2, 5) 5 19845 726 (33684, 577)\nchar_wb (2, 5) 6 17777 722 (33684, 577)\nchar_wb (2, 5) 8 15246 716 (33684, 577)\nchar_wb (2, 5) 10 13379 711 (33684, 577)\nchar (4, 6) 2 96621 754 (33684, 577)\nchar (4, 6) 3 67576 736 (33684, 577)\nchar (4, 6) 4 52945 722 (33684, 577)\nchar (4, 6) 5 44154 704 (33684, 577)\nchar (4, 6) 6 37918 698 (33684, 577)"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01WSjrERyBpCDtnonPZyrfZc",
+        "type": "function",
+        "function": {
+          "name": "write_file",
+          "arguments": "{\"path\": \"/tmp/exp10.py\", \"content\": \"import json, re, unicodedata\\nfrom sklearn.feature_extraction.text import TfidfVectorizer\\nrows={}\\nfor d in [\\\"cardiac\\\",\\\"vascular\\\",\\\"systemic\\\"]:\\n    rows[d]=[json.loads(l) for l in open(f\\\"data/cases/{d}_cases.jsonl\\\") if l.strip()]\\nreq=json.load(open(\\\"data/query_facets.json\\\"))[\\\"facets\\\"]\\nT={\\\"cardiac\\\":(11375,46,33684,577),\\\"systemic\\\":(12117,29,38723,548),\\\"vascular\\\":(12109,45,36728,495)}\\ndef norm(t):\\n    t=unicodedata.normalize(\\\"NFKC\\\",str(t)).lower()\\n    return re.sub(r\\\"\\\\s+\\\",\\\" \\\",t).strip()\\nfor d in [\\\"cardiac\\\",\\\"systemic\\\",\\\"vascular\\\"]:\\n    docs=[norm(\\\" \\\".join([r[\\\"title\\\"],r[\\\"case_summary\\\"]])) for r in rows[d]]\\n    q=norm(req[d])\\n    a=TfidfVectorizer(ngram_range=(1,2),min_df=2,max_df=0.98).fit(docs)\\n    b=TfidfVectorizer(analyzer=\\\"char_wb\\\",ngram_range=(3,5),min_df=2).fit(docs)\\n    print(d,len(a.vocabulary_),a.transform([q]).nnz,len(b.vocabulary_),b.transform([q]).nnz,T[d])\\n\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01WSjrERyBpCDtnonPZyrfZc",
+    "name": "write_file",
+    "content": "{\"ok\": true, \"wrote\": \"/tmp/exp10.py\", \"bytes\": 873}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01RnnLKmBGvv6yByGZDRNpuw",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && (nohup python3 /tmp/exp10.py > /tmp/exp10.out 2>&1 &); sleep 90; cat /tmp/exp10.out\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01RnnLKmBGvv6yByGZDRNpuw",
+    "name": "bash",
+    "content": "cardiac 11375 46 33684 577 (11375, 46, 33684, 577)\nsystemic 12117 29 38723 548 (12117, 29, 38723, 548)\nvascular 12109 45 36728 495 (12109, 45, 36728, 495)"
+  },
+  {
+    "role": "assistant",
+    "content": "Both views identified exactly, and fusion is RRF (k=60). Let me verify fusion arithmetic:",
+    "tool_calls": [
+      {
+        "id": "toolu_014Q5X3NUVKry8aWmVG96uCQ",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"python3 -c \\\"\\nfor (a,b),v in [((1,3),0.032266458496),((12,2),0.030017921147),((15,7),0.028258706468),((16,6),0.028309409888)]:\\n    print(a,b,round(1/(60+a)+1/(60+b),12), v)\\n\\\"\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_014Q5X3NUVKry8aWmVG96uCQ",
+    "name": "bash",
+    "content": "1 3 0.032266458496 0.032266458496\n12 2 0.030017921147 0.030017921147\n15 7 0.028258706468 0.028258706468\n16 6 0.028309409888 0.028309409888"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01E5ohXh1QN7Hnb59wbTr5Mj",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 -c \\\"\\nimport json\\nreg={}\\nfor l in open('data/release_registry.jsonl'):\\n    r=json.loads(l); reg[r['record_key']]=r\\nn=0;mism=0;dommis=0\\nfor d in ['cardiac','vascular','systemic']:\\n    for l in open(f'data/cases/{d}_cases.jsonl'):\\n        r=json.loads(l); n+=1\\n        e=reg.get(r['record_key'])\\n        if e is None: print('missing',r['record_key']); continue\\n        if e['pmcid']!=r['pmcid']: mism+=1\\n        if e['domain']!=d: dommis+=1\\nprint(n,mism,dommis,len(reg))\\nprint(len(set(json.loads(l)['pmcid'] for d in ['cardiac','vascular','systemic'] for l in open(f'data/cases/{d}_cases.jsonl'))))\\n\\\"\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01E5ohXh1QN7Hnb59wbTr5Mj",
+    "name": "bash",
+    "content": "1500 0 0 1500\n1500"
+  },
+  {
+    "role": "assistant",
+    "content": "Both lexical views and the RRF fusion (k=60) are confirmed. Now let me write the repaired ranker.",
+    "tool_calls": [
+      {
+        "id": "toolu_019jhSEsweiVPmgtepfAmN3Y",
+        "type": "function",
+        "function": {
+          "name": "write_file",
+          "arguments": "{\"path\": \"/workspace/target/src/artifact_loader.py\", \"content\": \"\\\"\\\"\\\"Release-population loading and canonical identity join for the deployed candidate.\\n\\nRelease authority:\\n  * ``source_manifest.json`` declares the active landing files (release population).\\n    Unlisted landing files (duplicate deliveries) are never part of the population.\\n  * ``release_registry.jsonl`` is the identity authority. The stable join key is\\n    ``record_key``; the canonical served identity is the registry ``pmcid`` and the\\n    registry ``domain``. A landing display ``pmcid`` is not serving identity and may\\n    be rewritten, projected away, or missing entirely.\\n\\\"\\\"\\\"\\nfrom __future__ import annotations\\n\\nimport json\\nfrom pathlib import Path\\nfrom typing import Any\\n\\n\\ndef _read_jsonl(path: Path) -> list[dict[str, Any]]:\\n    rows: list[dict[str, Any]] = []\\n    if not path.exists():\\n        return rows\\n    for line in path.read_text(encoding=\\\"utf-8\\\").splitlines():\\n        line = line.strip()\\n        if not line:\\n            continue\\n        rows.append(json.loads(line))\\n    return rows\\n\\n\\ndef load_manifest(artifact_root: Path) -> dict[str, Any]:\\n    path = artifact_root / \\\"source_manifest.json\\\"\\n    if not path.exists():\\n        return {}\\n    return json.loads(path.read_text(encoding=\\\"utf-8\\\"))\\n\\n\\ndef load_registry(artifact_root: Path, manifest: dict[str, Any]) -> dict[str, dict[str, Any]]:\\n    name = str(manifest.get(\\\"identity_registry\\\") or \\\"release_registry.jsonl\\\")\\n    registry: dict[str, dict[str, Any]] = {}\\n    for row in _read_jsonl(artifact_root / name):\\n        key = row.get(\\\"record_key\\\")\\n        if key is None:\\n            continue\\n        registry[str(key)] = row\\n    return registry\\n\\n\\ndef load_cases(artifact_root: Path) -> list[dict[str, Any]]:\\n    \\\"\\\"\\\"Return the release population with canonical identity attached.\\n\\n    Only manifest-active files contribute. Each landing row is joined to the\\n    identity registry on ``record_key``; canonical ``pmcid`` and ``source``\\n    (domain) come from the registry, never from the landing display fields.\\n    Rows without a registry identity are not release population.\\n    \\\"\\\"\\\"\\n    artifact_root = Path(artifact_root)\\n    manifest = load_manifest(artifact_root)\\n    registry = load_registry(artifact_root, manifest)\\n    join_key = str(manifest.get(\\\"identity_key\\\") or \\\"record_key\\\")\\n\\n    entries = manifest.get(\\\"files\\\") or []\\n    active: list[tuple[str, Path]] = []\\n    for entry in entries:\\n        if not entry.get(\\\"active\\\", False):\\n            continue\\n        rel = str(entry.get(\\\"path\\\", \\\"\\\"))\\n        if not rel:\\n            continue\\n        active.append((str(entry.get(\\\"domain\\\", \\\"\\\")), artifact_root / rel))\\n\\n    if not active:  # defensive fallback: manifest unusable\\n        for path in sorted((artifact_root / \\\"cases\\\").glob(\\\"*.jsonl\\\")):\\n            active.append((path.name.split(\\\"_\\\")[0].split(\\\"(\\\")[0], path))\\n\\n    rows: list[dict[str, Any]] = []\\n    seen_keys: set[str] = set()\\n    for declared_domain, path in active:\\n        for row in _read_jsonl(path):\\n            key = row.get(join_key)\\n            if key is None:\\n                continue\\n            key = str(key)\\n            if key in seen_keys:\\n                continue\\n            identity = registry.get(key)\\n            if identity is None:\\n                continue\\n            seen_keys.add(key)\\n            record = dict(row)\\n            record[\\\"record_key\\\"] = key\\n            record[\\\"pmcid\\\"] = str(identity.get(\\\"pmcid\\\", \\\"\\\"))\\n            record[\\\"source\\\"] = str(identity.get(\\\"domain\\\") or declared_domain)\\n            rows.append(record)\\n    return rows\\n\\n\\ndef load_request(path: Path) -> dict[str, Any]:\\n    return json.loads(Path(path).read_text(encoding=\\\"utf-8\\\"))\\n\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_019jhSEsweiVPmgtepfAmN3Y",
+    "name": "write_file",
+    "content": "{\"ok\": true, \"wrote\": \"/workspace/target/src/artifact_loader.py\", \"bytes\": 3614}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01XcGLsdSsFrSrdkDXUgfb6c",
+        "type": "function",
+        "function": {
+          "name": "write_file",
+          "arguments": "{\"path\": \"/workspace/target/src/text_views.py\", \"content\": \"\\\"\\\"\\\"Text normalization and eligible-document assembly for the deployed candidate.\\n\\nServing boundary is ``pre_outcome``: only pre-outcome narrative fields are\\neligible index text. ``final_diagnosis`` is post-adjudication outcome text and\\n``domain_hits`` are derived post-hoc counters; neither is eligible. ``journal``\\nis bibliographic metadata and is not clinical evidence text.\\n\\\"\\\"\\\"\\nfrom __future__ import annotations\\n\\nimport re\\nimport unicodedata\\nfrom typing import Any\\n\\nELIGIBLE_FIELDS = (\\\"title\\\", \\\"case_summary\\\")\\n\\n\\ndef normalize(text: str) -> str:\\n    text = unicodedata.normalize(\\\"NFKC\\\", str(text)).lower()\\n    return re.sub(r\\\"\\\\s+\\\", \\\" \\\", text).strip()\\n\\n\\ndef document_text(row: dict[str, Any]) -> str:\\n    return normalize(\\\" \\\".join(str(row.get(field, \\\"\\\")) for field in ELIGIBLE_FIELDS))\\n\\n\\ndef query_text(facet_value: Any) -> str:\\n    return normalize(str(facet_value))\\n\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01XcGLsdSsFrSrdkDXUgfb6c",
+    "name": "write_file",
+    "content": "{\"ok\": true, \"wrote\": \"/workspace/target/src/text_views.py\", \"bytes\": 870}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01527oydUY96B3VstcbAoBf4",
+        "type": "function",
+        "function": {
+          "name": "write_file",
+          "arguments": "{\"path\": \"/workspace/target/src/ranker.py\", \"content\": \"\\\"\\\"\\\"Release ranking implementation for the deployed candidate.\\n\\nAccepted release behavior (from gated operational receipts):\\n\\n* Population: manifest-active files only, joined to the identity registry on\\n  ``record_key`` (see :mod:`src.artifact_loader`).\\n* Eligible text: pre-outcome fields only (title + case summary).\\n* Lexical index: two per-domain views fitted on the domain's release rows.\\n    - view_a: word 1-2 grams, min_df=2, max_df=0.98\\n    - view_b: char_wb 3-5 grams, min_df=2\\n* Ranking is within-domain against the matching request facet.\\n* Fusion: reciprocal rank fusion over the two within-view rank positions with\\n  k=60 (raw similarity scales are not exchangeable).\\n* Allocation: request-sized, balanced across the three active cause families.\\n\\\"\\\"\\\"\\nfrom __future__ import annotations\\n\\nfrom collections import Counter\\nfrom typing import Any\\n\\nfrom sklearn.feature_extraction.text import TfidfVectorizer\\nfrom sklearn.metrics.pairwise import linear_kernel\\n\\nfrom .text_views import document_text, normalize, query_text\\n\\nRRF_K = 60\\nFAMILIES = (\\\"cardiac\\\", \\\"vascular\\\", \\\"systemic\\\")\\n\\n\\ndef _view_ranks(documents: list[str], query: str, **params: Any) -> list[int]:\\n    \\\"\\\"\\\"Return 1-based within-view rank position for each document.\\\"\\\"\\\"\\n    vectorizer = TfidfVectorizer(**params)\\n    matrix = vectorizer.fit_transform(documents)\\n    query_vector = vectorizer.transform([query])\\n    scores = linear_kernel(query_vector, matrix).ravel()\\n    order = sorted(range(len(documents)), key=lambda i: (-float(scores[i]), i))\\n    ranks = [0] * len(documents)\\n    for position, index in enumerate(order, start=1):\\n        ranks[index] = position\\n    return ranks\\n\\n\\ndef _rank_domain(rows: list[dict[str, Any]], query: str) -> list[dict[str, Any]]:\\n    documents = [document_text(row) for row in rows]\\n    ranks_a = _view_ranks(documents, query, ngram_range=(1, 2), min_df=2, max_df=0.98)\\n    ranks_b = _view_ranks(documents, query, analyzer=\\\"char_wb\\\", ngram_range=(3, 5), min_df=2)\\n    scored = []\\n    for index, row in enumerate(rows):\\n        fused = 1.0 / (RRF_K + ranks_a[index]) + 1.0 / (RRF_K + ranks_b[index])\\n        scored.append({\\n            \\\"pmcid\\\": str(row[\\\"pmcid\\\"]),\\n            \\\"source\\\": str(row[\\\"source\\\"]),\\n            \\\"record_key\\\": str(row.get(\\\"record_key\\\", \\\"\\\")),\\n            \\\"score\\\": round(float(fused), 12),\\n            \\\"_ranks\\\": (ranks_a[index], ranks_b[index]),\\n        })\\n    scored.sort(key=lambda item: (-item[\\\"score\\\"], item[\\\"_ranks\\\"][0], item[\\\"_ranks\\\"][1], item[\\\"pmcid\\\"]))\\n    return scored\\n\\n\\ndef _family_cycle(request: dict[str, Any], facets: dict[str, Any]) -> list[str]:\\n    \\\"\\\"\\\"Request-dependent, deterministic family cycle.\\n\\n    Derived from the normalized request evidence: families present in the\\n    request are ordered by descending normalized facet byte total, with the\\n    family name as a stable tie-break. Manifest order and facet insertion\\n    order are not allocator authority.\\n    \\\"\\\"\\\"\\n    present = [f for f in FAMILIES if f in facets]\\n    if not present:\\n        present = list(FAMILIES)\\n    weights = {f: len(normalize(str(facets.get(f, \\\"\\\"))).encode(\\\"utf-8\\\")) for f in present}\\n    return sorted(present, key=lambda f: (-weights[f], f))\\n\\n\\ndef _allocate(pools: dict[str, list[dict[str, Any]]], cycle: list[str], top_k: int) -> list[dict[str, Any]]:\\n    cursors = {family: 0 for family in cycle}\\n    chosen: list[dict[str, Any]] = []\\n    while len(chosen) < top_k:\\n        progressed = False\\n        for family in cycle:\\n            if len(chosen) >= top_k:\\n                break\\n            pool = pools.get(family, [])\\n            cursor = cursors[family]\\n            if cursor < len(pool):\\n                chosen.append(pool[cursor])\\n                cursors[family] = cursor + 1\\n                progressed = True\\n        if not progressed:\\n            break\\n    return chosen\\n\\n\\ndef rank_cases(rows: list[dict[str, Any]], request: dict[str, Any]) -> dict[str, Any]:\\n    facets = dict(request.get(\\\"facets\\\") or {})\\n    try:\\n        top_k = int(request.get(\\\"top_k\\\", 12))\\n    except (TypeError, ValueError):\\n        top_k = 12\\n    if top_k < 0:\\n        top_k = 0\\n    top_k = min(top_k, len(rows))\\n\\n    by_family: dict[str, list[dict[str, Any]]] = {}\\n    for row in rows:\\n        by_family.setdefault(str(row[\\\"source\\\"]), []).append(row)\\n\\n    pools: dict[str, list[dict[str, Any]]] = {}\\n    for family, family_rows in by_family.items():\\n        facet = facets.get(family)\\n        if facet is None:\\n            facet = \\\" \\\".join(str(v) for v in facets.values())\\n        pools[family] = _rank_domain(family_rows, query_text(facet))\\n\\n    cycle = [f for f in _family_cycle(request, facets) if f in pools]\\n    for family in sorted(pools):\\n        if family not in cycle:\\n            cycle.append(family)\\n\\n    chosen = _allocate(pools, cycle, top_k)\\n    results = [\\n        {\\\"pmcid\\\": item[\\\"pmcid\\\"], \\\"source\\\": item[\\\"source\\\"], \\\"score\\\": item[\\\"score\\\"]}\\n        for item in chosen\\n    ]\\n    domain_counts = Counter(str(row[\\\"source\\\"]) for row in rows)\\n    return {\\n        \\\"corpus_count\\\": len(rows),\\n        \\\"domain_counts\\\": dict(sorted(domain_counts.items())),\\n        \\\"results\\\": results,\\n        \\\"pmcids\\\": [item[\\\"pmcid\\\"] for item in results],\\n        \\\"method\\\": \\\"per_domain_dual_view_rrf_balanced_allocation\\\",\\n    }\\n\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01527oydUY96B3VstcbAoBf4",
+    "name": "write_file",
+    "content": "{\"ok\": true, \"wrote\": \"/workspace/target/src/ranker.py\", \"bytes\": 5228}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01AJgFwkUrN8C7dbGFJR8s6U",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && (nohup python3 -m src.cli --artifact-root data --request data/query_facets.json > /tmp/out1.json 2>/tmp/out1.err &); sleep 60; python3 -m json.tool /tmp/out1.json 2>/dev/null | head -80; cat /tmp/out1.err\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01AJgFwkUrN8C7dbGFJR8s6U",
+    "name": "bash",
+    "content": "{\n    \"corpus_count\": 1500,\n    \"domain_counts\": {\n        \"cardiac\": 500,\n        \"systemic\": 500,\n        \"vascular\": 500\n    },\n    \"method\": \"per_domain_dual_view_rrf_balanced_allocation\",\n    \"pmcids\": [\n        \"PMC10602372\",\n        \"PMC9289430\",\n        \"PMC6586101\",\n        \"PMC11462448\",\n        \"PMC3880180\",\n        \"PMC11786013\",\n        \"PMC10715972\",\n        \"PMC5420918\",\n        \"PMC7481573\",\n        \"PMC8288783\",\n        \"PMC8710040\",\n        \"PMC6501628\"\n    ],\n    \"results\": [\n        {\n            \"pmcid\": \"PMC10602372\",\n            \"score\": 0.032266458496,\n            \"source\": \"cardiac\"\n        },\n        {\n            \"pmcid\": \"PMC9289430\",\n            \"score\": 0.02967032967,\n            \"source\": \"systemic\"\n        },\n        {\n            \"pmcid\": \"PMC6586101\",\n            \"score\": 0.031544957774,\n            \"source\": \"vascular\"\n        },\n        {\n            \"pmcid\": \"PMC11462448\",\n            \"score\": 0.031024531025,\n            \"source\": \"cardiac\"\n        },\n        {\n            \"pmcid\": \"PMC3880180\",\n            \"score\": 0.028893442623,\n            \"source\": \"systemic\"\n        },\n        {\n            \"pmcid\": \"PMC11786013\",\n            \"score\": 0.031544957774,\n            \"source\": \"vascular\"\n        },\n        {\n            \"pmcid\": \"PMC10715972\",\n            \"score\": 0.030834914611,\n            \"source\": \"cardiac\"\n        },\n        {\n            \"pmcid\": \"PMC5420918\",\n            \"score\": 0.028782894737,\n            \"source\": \"systemic\"\n        },\n        {\n            \"pmcid\": \"PMC7481573\",\n            \"score\": 0.031498015873,\n            \"source\": \"vascular\"\n        },\n        {\n            \"pmcid\": \"PMC8288783\",\n            \"score\": 0.030550373134,\n            \"source\": \"cardiac\"\n        },\n        {\n            \"pmcid\": \"PMC8710040\",\n            \"score\": 0.028624003271,\n            \"source\": \"systemic\"\n        },\n        {\n            \"pmcid\": \"PMC6501628\","
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01N3fTqt8getiZc2HbgjndFJ",
+        "type": "function",
+        "function": {
+          "name": "write_file",
+          "arguments": "{\"path\": \"/tmp/check_cal.py\", \"content\": \"import json, sys\\nsys.path.insert(0,'/workspace/target')\\nfrom pathlib import Path\\nfrom src.artifact_loader import load_cases, load_request\\nfrom src.ranker import _rank_domain\\nfrom src.text_views import query_text\\nrows=load_cases(Path('/workspace/target/data'))\\nreq=load_request(Path('/workspace/target/data/query_facets.json'))\\nf=req['facets']\\nby={}\\nfor r in rows: by.setdefault(r['source'],[]).append(r)\\ntargets={0.032266458496,0.030017921147,0.028258706468,0.028309409888}\\nfor d in ['cardiac','systemic','vascular']:\\n    p=_rank_domain(by[d], query_text(f[d]))\\n    print(d, [(x['pmcid'],x['score'],x['_ranks']) for x in p[:6]])\\n    for x in p[:60]:\\n        if x['score'] in targets: print(\\\"  CAL MATCH\\\",d,x['pmcid'],x['score'],x['_ranks'])\\n\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01N3fTqt8getiZc2HbgjndFJ",
+    "name": "write_file",
+    "content": "{\"ok\": true, \"wrote\": \"/tmp/check_cal.py\", \"bytes\": 741}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01P18rqcbp6r1XXJsqJ6ReJ1",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && (nohup python3 /tmp/check_cal.py > /tmp/cal.out 2>&1 &); sleep 90; cat /tmp/cal.out\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01P18rqcbp6r1XXJsqJ6ReJ1",
+    "name": "bash",
+    "content": "cardiac [('PMC10602372', 0.032266458496, (1, 3)), ('PMC11462448', 0.031024531025, (3, 6)), ('PMC10715972', 0.030834914611, (8, 2)), ('PMC8288783', 0.030550373134, (7, 4)), ('PMC2632988', 0.03009207276, (13, 1)), ('PMC10313493', 0.029642545772, (2, 14))]\n  CAL MATCH cardiac PMC10602372 0.032266458496 (1, 3)\nsystemic [('PMC9289430', 0.02967032967, (10, 5)), ('PMC3880180', 0.028893442623, (1, 20)), ('PMC5420918', 0.028782894737, (4, 16)), ('PMC8710040', 0.028624003271, (13, 7)), ('PMC11822340', 0.028324154209, (2, 22)), ('PMC4194386', 0.028219395866, (8, 14))]\nvascular [('PMC6586101', 0.031544957774, (1, 6)), ('PMC11786013', 0.031544957774, (6, 1)), ('PMC7481573', 0.031498015873, (4, 3)), ('PMC6501628', 0.030309988519, (5, 7)), ('PMC3350230', 0.028370221328, (11, 10)), ('PMC7076247', 0.028174603175, (10, 12))]"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_019FbChtQV4kySTKPvEcmZym",
+        "type": "function",
+        "function": {
+          "name": "write_file",
+          "arguments": "{\"path\": \"/tmp/check_cal2.py\", \"content\": \"import json, sys\\nsys.path.insert(0,'/workspace/target')\\nfrom pathlib import Path\\nfrom src.artifact_loader import load_cases, load_request\\nfrom src.ranker import _rank_domain\\nfrom src.text_views import query_text\\nrows=load_cases(Path('/workspace/target/data'))\\nreq=load_request(Path('/workspace/target/data/query_facets.json'))\\nf=req['facets']\\nby={}\\nfor r in rows: by.setdefault(r['source'],[]).append(r)\\nwant={(1,3),(12,2),(15,7),(16,6)}\\nfor d in ['cardiac','systemic','vascular']:\\n    p=_rank_domain(by[d], query_text(f[d]))\\n    for x in p:\\n        if x['_ranks'] in want:\\n            print(\\\"HIT\\\",d,x['pmcid'],x['_ranks'],x['score'])\\n\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_019FbChtQV4kySTKPvEcmZym",
+    "name": "write_file",
+    "content": "{\"ok\": true, \"wrote\": \"/tmp/check_cal2.py\", \"bytes\": 635}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01U6phhD4vuz8KoyWgCwYFCJ",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && (nohup python3 /tmp/check_cal2.py > /tmp/cal2.out 2>&1 &); sleep 90; cat /tmp/cal2.out\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01U6phhD4vuz8KoyWgCwYFCJ",
+    "name": "bash",
+    "content": "HIT cardiac PMC10602372 (1, 3) 0.032266458496"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01BRTUFGGtNuN7yNiGko2S5v",
+        "type": "function",
+        "function": {
+          "name": "write_file",
+          "arguments": "{\"path\": \"/tmp/check_cal3.py\", \"content\": \"import json, sys\\nsys.path.insert(0,'/workspace/target')\\nfrom pathlib import Path\\nfrom src.artifact_loader import load_cases, load_request\\nfrom src.ranker import _rank_domain\\nfrom src.text_views import query_text\\nrows=load_cases(Path('/workspace/target/data'))\\nreq=load_request(Path('/workspace/target/data/query_facets.json'))\\nf=req['facets']\\nby={}\\nfor r in rows: by.setdefault(r['source'],[]).append(r)\\nfor d in ['cardiac','systemic','vascular']:\\n    p=_rank_domain(by[d], query_text(f[d]))\\n    pa=sorted(p,key=lambda x:x['_ranks'][0])[:20]\\n    pb=sorted(p,key=lambda x:x['_ranks'][1])[:20]\\n    print(\\\"==\\\",d)\\n    print(\\\" A:\\\",[(x['_ranks'],x['pmcid']) for x in pa])\\n    print(\\\" B:\\\",[(x['_ranks'],x['pmcid']) for x in pb])\\n\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01BRTUFGGtNuN7yNiGko2S5v",
+    "name": "write_file",
+    "content": "{\"ok\": true, \"wrote\": \"/tmp/check_cal3.py\", \"bytes\": 722}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01Wht2V3JmtWX2DSJRJ8qAG9",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && (nohup python3 /tmp/check_cal3.py > /tmp/cal3.out 2>&1 &); sleep 90; cat /tmp/cal3.out\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01Wht2V3JmtWX2DSJRJ8qAG9",
+    "name": "bash",
+    "content": "== cardiac\n A: [((1, 3), 'PMC10602372'), ((2, 14), 'PMC10313493'), ((3, 6), 'PMC11462448'), ((4, 32), 'PMC11328590'), ((5, 88), 'PMC7319850'), ((6, 42), 'PMC10150548'), ((7, 4), 'PMC8288783'), ((8, 2), 'PMC10715972'), ((9, 11), 'PMC7047074'), ((10, 9), 'PMC4980526'), ((11, 73), 'PMC7501910'), ((12, 31), 'PMC9826625'), ((13, 1), 'PMC2632988'), ((14, 80), 'PMC7752432'), ((15, 15), 'PMC7850631'), ((16, 49), 'PMC6426014'), ((17, 101), 'PMC10774882'), ((18, 172), 'PMC8226328'), ((19, 30), 'PMC3994524'), ((20, 27), 'PMC11130518')]\n B: [((13, 1), 'PMC2632988'), ((8, 2), 'PMC10715972'), ((1, 3), 'PMC10602372'), ((7, 4), 'PMC8288783'), ((33, 5), 'PMC2967841'), ((3, 6), 'PMC11462448'), ((56, 7), 'PMC4370000'), ((72, 8), 'PMC9976720'), ((10, 9), 'PMC4980526'), ((99, 10), 'PMC10787369'), ((9, 11), 'PMC7047074'), ((71, 12), 'PMC11097718'), ((53, 13), 'PMC11223605'), ((2, 14), 'PMC10313493'), ((15, 15), 'PMC7850631'), ((94, 16), 'PMC10828590'), ((97, 17), 'PMC9924498'), ((37, 18), 'PMC7929840'), ((89, 19), 'PMC7954273'), ((44, 20), 'PMC7780492')]\n== systemic\n A: [((1, 20), 'PMC3880180'), ((2, 22), 'PMC11822340'), ((3, 35), 'PMC9379951'), ((4, 16), 'PMC5420918'), ((5, 26), 'PMC7804355'), ((6, 47), 'PMC10148391'), ((7, 394), 'PMC9780426'), ((8, 14), 'PMC4194386'), ((9, 64), 'PMC11962302'), ((10, 5), 'PMC9289430'), ((11, 139), 'PMC8894572'), ((12, 40), 'PMC11915298'), ((13, 7), 'PMC8710040'), ((14, 141), 'PMC11669211'), ((15, 193), 'PMC7499288'), ((16, 44), 'PMC4672104'), ((17, 215), 'PMC7985283'), ((18, 159), 'PMC10588441'), ((19, 265), 'PMC6425334'), ((20, 93), 'PMC5702391')]\n B: [((96, 1), 'PMC7708088'), ((26, 2), 'PMC10597320'), ((25, 3), 'PMC10098425'), ((52, 4), 'PMC11857799'), ((10, 5), 'PMC9289430'), ((58, 6), 'PMC3135110'), ((13, 7), 'PMC8710040'), ((27, 8), 'PMC1839760'), ((39, 9), 'PMC8731279'), ((166, 10), 'PMC7573346'), ((89, 11), 'PMC10480021'), ((67, 12), 'PMC7450346'), ((138, 13), 'PMC2912233'), ((8, 14), 'PMC4194386'), ((47, 15), 'PMC11017529'), ((4, 16), 'PMC5420918'), ((56, 17), 'PMC8377973'), ((73, 18), 'PMC9552995'), ((63, 19), 'PMC8358280'), ((1, 20), 'PMC3880180')]\n== vascular\n A: [((1, 6), 'PMC6586101'), ((2, 59), 'PMC5667281'), ((3, 73), 'PMC6186763'), ((4, 3), 'PMC7481573'), ((5, 7), 'PMC6501628'), ((6, 1), 'PMC11786013'), ((7, 99), 'PMC2913533'), ((8, 116), 'PMC10542731'), ((9, 33), 'PMC3971853'), ((10, 12), 'PMC7076247'), ((11, 10), 'PMC3350230'), ((12, 123), 'PMC6444769'), ((13, 66), 'PMC7841211'), ((14, 104), 'PMC8649119'), ((15, 155), 'PMC9388874'), ((16, 20), 'PMC6159149'), ((17, 25), 'PMC8207175'), ((18, 16), 'PMC11585472'), ((19, 96), 'PMC2626703'), ((20, 19), 'PMC11286243')]\n B: [((6, 1), 'PMC11786013'), ((41, 2), 'PMC8803219'), ((4, 3), 'PMC7481573'), ((23, 4), 'PMC5066018'), ((42, 5), 'PMC5390533'), ((1, 6), 'PMC6586101'), ((5, 7), 'PMC6501628'), ((40, 8), 'PMC9008083'), ((22, 9), 'PMC11732846'), ((11, 10), 'PMC3350230'), ((48, 11), 'PMC9556590'), ((10, 12), 'PMC7076247'), ((55, 13), 'PMC7928094'), ((53, 14), 'PMC11817324'), ((63, 15), 'PMC8515406'), ((18, 16), 'PMC11585472'), ((32, 17), 'PMC5301123'), ((29, 18), 'PMC10565682'), ((20, 19), 'PMC11286243'), ((16, 20), 'PMC6159149')]"
+  },
+  {
+    "role": "assistant",
+    "content": "The calibration pairs don't all match \u2014 I need to check tf-idf weighting variants.",
+    "tool_calls": [
+      {
+        "id": "toolu_016tury2RbUB5y3TAhJAVNj4",
+        "type": "function",
+        "function": {
+          "name": "write_file",
+          "arguments": "{\"path\": \"/tmp/search_weight.py\", \"content\": \"import json, sys, itertools, re, unicodedata\\nimport numpy as np\\nsys.path.insert(0,'/workspace/target')\\nfrom pathlib import Path\\nfrom sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer\\nfrom sklearn.preprocessing import normalize as sknorm\\nfrom src.artifact_loader import load_cases, load_request\\nfrom src.text_views import document_text, query_text\\n\\nrows=load_cases(Path('/workspace/target/data'))\\nreq=load_request(Path('/workspace/target/data/query_facets.json'))\\nf=req['facets']\\nby={}\\nfor r in rows: by.setdefault(r['source'],[]).append(r)\\n\\nviews={\\\"a\\\":dict(ngram_range=(1,2),min_df=2,max_df=0.98),\\n       \\\"b\\\":dict(analyzer=\\\"char_wb\\\",ngram_range=(3,5),min_df=2)}\\ncache={}\\nfor d in [\\\"cardiac\\\",\\\"systemic\\\",\\\"vascular\\\"]:\\n    docs=[document_text(r) for r in by[d]]\\n    q=query_text(f[d])\\n    for vn,p in views.items():\\n        cv=CountVectorizer(**p)\\n        X=cv.fit_transform(docs)\\n        Q=cv.transform([q])\\n        cache[(d,vn)]=(X,Q,[r['pmcid'] for r in by[d]])\\n        print(\\\"built\\\",d,vn,X.shape,Q.nnz,flush=True)\\n\\ntargets={(1,3),(12,2),(15,7),(16,6)}\\nanchors={\\\"cardiac\\\":(12,2),\\\"systemic\\\":(5,12),\\\"vascular\\\":(5,5)}\\n\\ndef ranks(X,Q,**tf):\\n    t=TfidfTransformer(**tf)\\n    Xt=t.fit_transform(X)\\n    Qt=t.transform(Q)\\n    if tf.get(\\\"norm\\\") is None:\\n        pass\\n    s=(Qt @ Xt.T).toarray().ravel()\\n    order=np.lexsort((np.arange(len(s)), -s))\\n    rk=np.empty(len(s),dtype=int)\\n    rk[order]=np.arange(1,len(s)+1)\\n    return rk\\n\\ncombos=[]\\nfor sub in [False,True]:\\n    for smooth in [True,False]:\\n        for useidf in [True,False]:\\n            for nrm in [\\\"l2\\\",\\\"l1\\\",None]:\\n                combos.append(dict(sublinear_tf=sub,smooth_idf=smooth,use_idf=useidf,norm=nrm))\\n\\nbest=[]\\nfor c in combos:\\n    hits=0; found=[]\\n    for d in [\\\"cardiac\\\",\\\"systemic\\\",\\\"vascular\\\"]:\\n        Xa,Qa,ids=cache[(d,\\\"a\\\")]; Xb,Qb,_=cache[(d,\\\"b\\\")]\\n        ra=ranks(Xa,Qa,**c); rb=ranks(Xb,Qb,**c)\\n        for i in range(len(ids)):\\n            p=(int(ra[i]),int(rb[i]))\\n            if p in targets:\\n                hits+=1; found.append((d,ids[i],p))\\n    print(c,\\\"hits\\\",hits,found,flush=True)\\n\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_016tury2RbUB5y3TAhJAVNj4",
+    "name": "write_file",
+    "content": "{\"ok\": true, \"wrote\": \"/tmp/search_weight.py\", \"bytes\": 2083}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01EjjG7asnbrL89BcCzuU1DG",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && (nohup python3 /tmp/search_weight.py > /tmp/sw.out 2>&1 &); sleep 170; cat /tmp/sw.out\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01EjjG7asnbrL89BcCzuU1DG",
+    "name": "bash",
+    "content": "{\"ok\": false, \"error\": \"tool bash crashed: Command '['docker', 'exec', '-u', 'ubuntu', '-w', '/workspace/target', 'harbor-cpu-ml-engineering-post-pci-clinical-case-retrieval-drift-run', 'bash', '-c', 'cd /workspace/target && (nohup python3 /tm\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_013kbEwSrP1MPH8r2sbEmBDX",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"sleep 100; cat /tmp/sw.out\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_013kbEwSrP1MPH8r2sbEmBDX",
+    "name": "bash",
+    "content": "built cardiac a (500, 11375) 46\nbuilt cardiac b (500, 33684) 577\nbuilt systemic a (500, 12117) 29\nbuilt systemic b (500, 38723) 548\nbuilt vascular a (500, 12109) 45\nbuilt vascular b (500, 36728) 495\n{'sublinear_tf': False, 'smooth_idf': True, 'use_idf': True, 'norm': 'l2'} hits 1 [('cardiac', 'PMC10602372', (1, 3))]\n{'sublinear_tf': False, 'smooth_idf': True, 'use_idf': True, 'norm': 'l1'} hits 0 []\n{'sublinear_tf': False, 'smooth_idf': True, 'use_idf': True, 'norm': None} hits 0 []\n{'sublinear_tf': False, 'smooth_idf': True, 'use_idf': False, 'norm': 'l2'} hits 0 []\n{'sublinear_tf': False, 'smooth_idf': True, 'use_idf': False, 'norm': 'l1'} hits 1 [('vascular', 'PMC3350230', (15, 7))]\n{'sublinear_tf': False, 'smooth_idf': True, 'use_idf': False, 'norm': None} hits 0 []\n{'sublinear_tf': False, 'smooth_idf': False, 'use_idf': True, 'norm': 'l2'} hits 1 [('cardiac', 'PMC10602372', (1, 3))]\n{'sublinear_tf': False, 'smooth_idf': False, 'use_idf': True, 'norm': 'l1'} hits 1 [('vascular', 'PMC11786013', (12, 2))]\n{'sublinear_tf': False, 'smooth_idf': False, 'use_idf': True, 'norm': None} hits 0 []\n{'sublinear_tf': False, 'smooth_idf': False, 'use_idf': False, 'norm': 'l2'} hits 0 []\n{'sublinear_tf': False, 'smooth_idf': False, 'use_idf': False, 'norm': 'l1'} hits 1 [('vascular', 'PMC3350230', (15, 7))]\n{'sublinear_tf': False, 'smooth_idf': False, 'use_idf': False, 'norm': None} hits 0 []\n{'sublinear_tf': True, 'smooth_idf': True, 'use_idf': True, 'norm': 'l2'} hits 4 [('cardiac', 'PMC10715972', (12, 2)), ('cardiac', 'PMC11462448', (1, 3)), ('systemic', 'PMC9289430', (16, 6)), ('vascular', 'PMC11585472', (15, 7))]\n{'sublinear_tf': True, 'smooth_idf': True, 'use_idf': True, 'norm': 'l1'} hits 1 [('cardiac', 'PMC11462448', (1, 3))]\n{'sublinear_tf': True, 'smooth_idf': True, 'use_idf': True, 'norm': None} hits 0 []\n{'sublinear_tf': True, 'smooth_idf': True, 'use_idf': False, 'norm': 'l2'} hits 0 []\n{'sublinear_tf': True, 'smooth_idf': True, 'use_idf': False, 'norm': 'l1'} hits 0 []\n{'sublinear_tf': True, 'smooth_idf': True, 'use_idf': False, 'norm': None} hits 1 [('cardiac', 'PMC10313493', (1, 3))]\n{'sublinear_tf': True, 'smooth_idf': False, 'use_idf': True, 'norm': 'l2'} hits 2 [('cardiac', 'PMC10715972', (12, 2)), ('cardiac', 'PMC11462448', (1, 3))]\n{'sublinear_tf': True, 'smooth_idf': False, 'use_idf': True, 'norm': 'l1'} hits 1 [('cardiac', 'PMC11462448', (1, 3))]\n{'sublinear_tf': True, 'smooth_idf': False, 'use_idf': True, 'norm': None} hits 0 []\n{'sublinear_tf': True, 'smooth_idf': False, 'use_idf': False, 'norm': 'l2'} hits 0 []\n{'sublinear_tf': True, 'smooth_idf': False, 'use_idf': False, 'norm': 'l1'} hits 0 []\n{'sublinear_tf': True, 'smooth_idf': False, 'use_idf': False, 'norm': None} hits 1 [('cardiac', 'PMC10313493', (1, 3))]"
+  },
+  {
+    "role": "assistant",
+    "content": "Sublinear TF matches all four calibration pairs. Let me verify the anchor positions too.",
+    "tool_calls": [
+      {
+        "id": "toolu_01Pps6oEW2W3b7GDrL9uDezN",
+        "type": "function",
+        "function": {
+          "name": "write_file",
+          "arguments": "{\"path\": \"/tmp/verify_anchor.py\", \"content\": \"import sys\\nimport numpy as np\\nsys.path.insert(0,'/workspace/target')\\nfrom pathlib import Path\\nfrom sklearn.feature_extraction.text import TfidfVectorizer\\nfrom src.artifact_loader import load_cases, load_request\\nfrom src.text_views import document_text, query_text\\nrows=load_cases(Path('/workspace/target/data'))\\nreq=load_request(Path('/workspace/target/data/query_facets.json'))\\nf=req['facets']\\nby={}\\nfor r in rows: by.setdefault(r['source'],[]).append(r)\\nanchors={\\\"cardiac\\\":(12,2),\\\"systemic\\\":(5,12),\\\"vascular\\\":(5,5)}\\nV={\\\"a\\\":dict(ngram_range=(1,2),min_df=2,max_df=0.98,sublinear_tf=True),\\n   \\\"b\\\":dict(analyzer=\\\"char_wb\\\",ngram_range=(3,5),min_df=2,sublinear_tf=True)}\\nfor d in [\\\"cardiac\\\",\\\"systemic\\\",\\\"vascular\\\"]:\\n    docs=[document_text(r) for r in by[d]]; q=query_text(f[d]); ids=[r['pmcid'] for r in by[d]]\\n    rk={}\\n    for vn,p in V.items():\\n        v=TfidfVectorizer(**p); X=v.fit_transform(docs); Q=v.transform([q])\\n        s=(Q@X.T).toarray().ravel()\\n        order=sorted(range(len(s)),key=lambda i:(-s[i],i))\\n        r=[0]*len(s)\\n        for pos,i in enumerate(order,1): r[i]=pos\\n        rk[vn]=r\\n    a=anchors[d]\\n    for i in range(len(ids)):\\n        if (rk['a'][i],rk['b'][i])==a: print(\\\"ANCHOR\\\",d,ids[i],a)\\n    fused=[(1/(60+rk['a'][i])+1/(60+rk['b'][i]), ids[i], (rk['a'][i],rk['b'][i])) for i in range(len(ids))]\\n    fused.sort(key=lambda x:(-x[0],x[2][0],x[2][1],x[1]))\\n    print(d, fused[:6])\\n\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01Pps6oEW2W3b7GDrL9uDezN",
+    "name": "write_file",
+    "content": "{\"ok\": true, \"wrote\": \"/tmp/verify_anchor.py\", \"bytes\": 1406}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01Gj1TrWMQe5ptAta5rzRh2j",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && (nohup python3 /tmp/verify_anchor.py > /tmp/va.out 2>&1 &); sleep 120; cat /tmp/va.out\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01Gj1TrWMQe5ptAta5rzRh2j",
+    "name": "bash",
+    "content": "{\"ok\": false, \"error\": \"tool bash crashed: Command '['docker', 'exec', '-u', 'ubuntu', '-w', '/workspace/target', 'harbor-cpu-ml-engineering-post-pci-clinical-case-retrieval-drift-run', 'bash', '-c', 'cd /workspace/target && (nohup python3 /tm\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01G6eFfKDsbJWqY1M2h5yvue",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"sleep 45; cat /tmp/va.out\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01G6eFfKDsbJWqY1M2h5yvue",
+    "name": "bash",
+    "content": "ANCHOR cardiac PMC10715972 (12, 2)\ncardiac [(0.032266458495966696, 'PMC11462448', (1, 3)), (0.03149801587301587, 'PMC4980526', (3, 4)), (0.030309988518943745, 'PMC10602372', (5, 7)), (0.030017921146953404, 'PMC10715972', (12, 2)), (0.029551337359792925, 'PMC2632988', (16, 1)), (0.02919863597612958, 'PMC7047074', (8, 9))]\nANCHOR systemic PMC7804355 (5, 12)\nsystemic [(0.029273504273504274, 'PMC7804355', (5, 12)), (0.028958333333333336, 'PMC5420918', (4, 15)), (0.02889344262295082, 'PMC3880180', (1, 20)), (0.028309409888357256, 'PMC9289430', (16, 6)), (0.027799227799227798, 'PMC8710040', (14, 10)), (0.027745885954841176, 'PMC10098425', (18, 7))]\nANCHOR vascular PMC3350230 (5, 5)\nvascular [(0.031754032258064516, 'PMC7481573', (2, 4)), (0.031544957774465976, 'PMC6586101', (1, 6)), (0.03076923076923077, 'PMC3350230', (5, 5)), (0.028258706467661692, 'PMC11585472', (15, 7)), (0.028006267136701922, 'PMC6501628', (14, 9)), (0.027242401779095628, 'PMC8207175', (16, 11))]"
+  },
+  {
+    "role": "assistant",
+    "content": "All anchors and all four calibration values match with `sublinear_tf=True`. Updating the ranker:",
+    "tool_calls": [
+      {
+        "id": "toolu_01JVARcBipC9mNzxdBcBp5A6",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 - <<'EOF'\\nimport re\\np='src/ranker.py'\\ns=open(p).read()\\ns=s.replace('    - view_a: word 1-2 grams, min_df=2, max_df=0.98\\\\n    - view_b: char_wb 3-5 grams, min_df=2',\\n            '    - view_a: word 1-2 grams, min_df=2, max_df=0.98, sublinear_tf\\\\n    - view_b: char_wb 3-5 grams, min_df=2, sublinear_tf')\\ns=s.replace('ngram_range=(1, 2), min_df=2, max_df=0.98)','ngram_range=(1, 2), min_df=2, max_df=0.98, sublinear_tf=True)')\\ns=s.replace('analyzer=\\\"char_wb\\\", ngram_range=(3, 5), min_df=2)','analyzer=\\\"char_wb\\\", ngram_range=(3, 5), min_df=2, sublinear_tf=True)')\\nopen(p,'w').write(s)\\nEOF\\ngrep -n \\\"sublinear\\\" src/ranker.py\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01JVARcBipC9mNzxdBcBp5A6",
+    "name": "bash",
+    "content": "9:    - view_a: word 1-2 grams, min_df=2, max_df=0.98, sublinear_tf\n10:    - view_b: char_wb 3-5 grams, min_df=2, sublinear_tf\n45:    ranks_a = _view_ranks(documents, query, ngram_range=(1, 2), min_df=2, max_df=0.98, sublinear_tf=True)\n46:    ranks_b = _view_ranks(documents, query, analyzer=\"char_wb\", ngram_range=(3, 5), min_df=2, sublinear_tf=True)"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01EVi73rt5Hh4YW3AdJ3Trag",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && (nohup python3 -m src.cli --artifact-root data --request data/query_facets.json > /tmp/out2.json 2>/tmp/out2.err &); sleep 130; cat /tmp/out2.json; cat /tmp/out2.err\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01EVi73rt5Hh4YW3AdJ3Trag",
+    "name": "bash",
+    "content": "{\"ok\": false, \"error\": \"tool bash crashed: Command '['docker', 'exec', '-u', 'ubuntu', '-w', '/workspace/target', 'harbor-cpu-ml-engineering-post-pci-clinical-case-retrieval-drift-run', 'bash', '-c', 'cd /workspace/target && (nohup python3 -m \"}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01625DfbqwCze6ASwV37LHtC",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"sleep 30; cat /tmp/out2.json; echo; cat /tmp/out2.err\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01625DfbqwCze6ASwV37LHtC",
+    "name": "bash",
+    "content": "{\"corpus_count\":1500,\"domain_counts\":{\"cardiac\":500,\"systemic\":500,\"vascular\":500},\"method\":\"per_domain_dual_view_rrf_balanced_allocation\",\"pmcids\":[\"PMC11462448\",\"PMC7804355\",\"PMC7481573\",\"PMC4980526\",\"PMC5420918\",\"PMC6586101\",\"PMC10602372\",\"PMC3880180\",\"PMC3350230\",\"PMC10715972\",\"PMC9289430\",\"PMC11585472\"],\"results\":[{\"pmcid\":\"PMC11462448\",\"score\":0.032266458496,\"source\":\"cardiac\"},{\"pmcid\":\"PMC7804355\",\"score\":0.029273504274,\"source\":\"systemic\"},{\"pmcid\":\"PMC7481573\",\"score\":0.031754032258,\"source\":\"vascular\"},{\"pmcid\":\"PMC4980526\",\"score\":0.031498015873,\"source\":\"cardiac\"},{\"pmcid\":\"PMC5420918\",\"score\":0.028958333333,\"source\":\"systemic\"},{\"pmcid\":\"PMC6586101\",\"score\":0.031544957774,\"source\":\"vascular\"},{\"pmcid\":\"PMC10602372\",\"score\":0.030309988519,\"source\":\"cardiac\"},{\"pmcid\":\"PMC3880180\",\"score\":0.028893442623,\"source\":\"systemic\"},{\"pmcid\":\"PMC3350230\",\"score\":0.030769230769,\"source\":\"vascular\"},{\"pmcid\":\"PMC10715972\",\"score\":0.030017921147,\"source\":\"cardiac\"},{\"pmcid\":\"PMC9289430\",\"score\":0.028309409888,\"source\":\"systemic\"},{\"pmcid\":\"PMC11585472\",\"score\":0.028258706468,\"source\":\"vascular\"}]}"
+  },
+  {
+    "role": "assistant",
+    "content": "All four calibration values reproduce exactly. Now deploy the ranker.",
+    "tool_calls": [
+      {
+        "id": "toolu_013iLz5jnJqnSJF94gygR8dw",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 env_cli.py deploy.ranker\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_013iLz5jnJqnSJF94gygR8dw",
+    "name": "bash",
+    "content": "{\n  \"candidate_hash\": \"16091942dce9c66af794\",\n  \"generation\": 2,\n  \"next\": \"validate.ranker\",\n  \"ok\": true,\n  \"op\": \"deploy.ranker\"\n}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01Fc15SW4TdyLWYa2ACLboAv",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 env_cli.py validate.ranker\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01Fc15SW4TdyLWYa2ACLboAv",
+    "name": "bash",
+    "content": "{\n  \"next\": \"audit.balance\",\n  \"ok\": true,\n  \"op\": \"validate.ranker\",\n  \"reason\": \"hidden_rank_semantics\",\n  \"remaining\": 1,\n  \"status\": \"clean\"\n}"
+  },
+  {
+    "role": "assistant",
+    "content": "Clean. Now the balance audit.",
+    "tool_calls": [
+      {
+        "id": "toolu_01WwoJZ5PnoDCAhCpzWxyFU4",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 env_cli.py audit.balance\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01WwoJZ5PnoDCAhCpzWxyFU4",
+    "name": "bash",
+    "content": "{\n  \"allocator\": {\n    \"behavioral_examples\": [\n      {\n        \"emitted_family_prefix\": [\n          \"cardiac\",\n          \"systemic\",\n          \"vascular\",\n          \"cardiac\",\n          \"systemic\",\n          \"vascular\",\n          \"cardiac\"\n        ],\n        \"normalized_query_id\": \"seeded_post_pci_counterfactual_a\",\n        \"top_k\": 7,\n        \"utf8_byte_total\": 3369\n      },\n      {\n        \"emitted_family_prefix\": [\n          \"systemic\",\n          \"cardiac\",\n          \"vascular\",\n          \"systemic\",\n          \"cardiac\",\n          \"vascular\",\n          \"systemic\",\n          \"cardiac\"\n        ],\n        \"normalized_query_id\": \"seeded_post_pci_counterfactual_b\",\n        \"top_k\": 8,\n        \"utf8_byte_total\": 3370\n      },\n      {\n        \"emitted_family_prefix\": [\n          \"vascular\",\n          \"systemic\",\n          \"cardiac\",\n          \"vascular\",\n          \"systemic\",\n          \"cardiac\",\n          \"vascular\",\n          \"systemic\",\n          \"cardiac\",\n          \"vascular\"\n        ],\n        \"normalized_query_id\": \"seeded_post_pci_counterfactual_c\",\n        \"top_k\": 10,\n        \"utf8_byte_total\": 3371\n      }\n    ],\n    \"candidate_phase_inputs\": [\n      \"normalized query_id\",\n      \"UTF-8 byte total\",\n      \"active cause-family count\",\n      \"request size\"\n    ],\n    \"counterexamples\": {\n      \"facet_insertion_order\": \"rejected\",\n      \"manifest_entry_order\": \"rejected\"\n    },\n    \"normalization_receipt\": \"NFKC + lowercase + collapse whitespace\",\n    \"receipt_scope\": \"issued operationally by audit.balance after ranker validation\",\n    \"size_field\": \"top_k\",\n    \"strategy_family\": \"request-phased balanced cyclic emission with alternating direction\"\n  },\n  \"candidate_ran\": true,\n  \"next\": \"shadow.challenge\",\n  \"note\": \"infer the unique cyclic release behavior from these receipts; no implementation parameters are published\",\n  \"ok\": true,\n  \"op\": \"audit.balance\",\n  \"public_source_counts\": {\n    \"cardiac\": 4,\n    \"systemic\": 4,\n    \"vascular\": 4\n  },\n  \"required_spread\": \"max_minus_min_le_1\"\n}"
+  },
+  {
+    "role": "assistant",
+    "content": "[no tool call this turn]"
+  },
+  {
+    "role": "user",
+    "content": "Your previous turn was cut off at the output-token limit before it made a tool call. Be concise and reply with exactly one bash / write_file / finish tool call now."
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01M5EyHCTMah4MFHBq2uZx3P",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 - <<'PYEOF'\\np='src/ranker.py'\\ns=open(p).read()\\nold_start=s.index('def _family_cycle')\\nold_end=s.index('def _allocate')\\nnew='''def _request_byte_total(request: dict[str, Any], facets: dict[str, Any]) -> int:\\n    \\\"\\\"\\\"UTF-8 byte total of the normalized request evidence.\\n\\n    Normalization receipt: NFKC + lowercase + collapse whitespace. The\\n    normalized query_id and the normalized facet texts (in stable family\\n    order) form the request evidence; facet insertion order is not authority.\\n    \\\"\\\"\\\"\\n    parts = [normalize(str(request.get(\\\"query_id\\\", \\\"\\\")))]\\n    for family in sorted(facets):\\n        parts.append(normalize(str(facets[family])))\\n    return len(\\\" \\\".join(p for p in parts if p).encode(\\\"utf-8\\\"))\\n\\n\\ndef _family_cycle(request: dict[str, Any], facets: dict[str, Any]) -> list[str]:\\n    \\\"\\\"\\\"Request-phased balanced cyclic emission with alternating direction.\\n\\n    Families are enumerated in stable (alphabetical) order. The emission phase\\n    is the normalized request UTF-8 byte total modulo the active cause-family\\n    count; the traversal direction alternates with the request size (forward\\n    for odd top_k, reversed for even top_k). Manifest entry order and facet\\n    insertion order are explicitly not allocator authority.\\n    \\\"\\\"\\\"\\n    families = sorted(f for f in FAMILIES if f in facets)\\n    if not families:\\n        families = sorted(FAMILIES)\\n    n = len(families)\\n    phase = _request_byte_total(request, facets) % n\\n    try:\\n        top_k = int(request.get(\\\"top_k\\\", 12))\\n    except (TypeError, ValueError):\\n        top_k = 12\\n    step = 1 if top_k % 2 == 1 else -1\\n    return [families[(phase + step * i) % n] for i in range(n)]\\n\\n\\n'''\\ns=s[:old_start]+new+s[old_end:]\\nopen(p,'w').write(s)\\nPYEOF\\nsed -n 60,100p src/ranker.py\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01M5EyHCTMah4MFHBq2uZx3P",
+    "name": "bash",
+    "content": "def _request_byte_total(request: dict[str, Any], facets: dict[str, Any]) -> int:\n    \"\"\"UTF-8 byte total of the normalized request evidence.\n\n    Normalization receipt: NFKC + lowercase + collapse whitespace. The\n    normalized query_id and the normalized facet texts (in stable family\n    order) form the request evidence; facet insertion order is not authority.\n    \"\"\"\n    parts = [normalize(str(request.get(\"query_id\", \"\")))]\n    for family in sorted(facets):\n        parts.append(normalize(str(facets[family])))\n    return len(\" \".join(p for p in parts if p).encode(\"utf-8\"))\n\n\ndef _family_cycle(request: dict[str, Any], facets: dict[str, Any]) -> list[str]:\n    \"\"\"Request-phased balanced cyclic emission with alternating direction.\n\n    Families are enumerated in stable (alphabetical) order. The emission phase\n    is the normalized request UTF-8 byte total modulo the active cause-family\n    count; the traversal direction alternates with the request size (forward\n    for odd top_k, reversed for even top_k). Manifest entry order and facet\n    insertion order are explicitly not allocator authority.\n    \"\"\"\n    families = sorted(f for f in FAMILIES if f in facets)\n    if not families:\n        families = sorted(FAMILIES)\n    n = len(families)\n    phase = _request_byte_total(request, facets) % n\n    try:\n        top_k = int(request.get(\"top_k\", 12))\n    except (TypeError, ValueError):\n        top_k = 12\n    step = 1 if top_k % 2 == 1 else -1\n    return [families[(phase + step * i) % n] for i in range(n)]\n\n\ndef _allocate(pools: dict[str, list[dict[str, Any]]], cycle: list[str], top_k: int) -> list[dict[str, Any]]:\n    cursors = {family: 0 for family in cycle}\n    chosen: list[dict[str, Any]] = []\n    while len(chosen) < top_k:\n        progressed = False"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01DHR1FJZRob2aDRb7WncWew",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 -c \\\"\\nimport sys,json\\nsys.path.insert(0,'.')\\nfrom src.ranker import _family_cycle,_request_byte_total\\nfor qid,bt,tk,exp in [('seeded_post_pci_counterfactual_a',3369,7,['cardiac','systemic','vascular']),('seeded_post_pci_counterfactual_b',3370,8,['systemic','cardiac','vascular']),('seeded_post_pci_counterfactual_c',3371,10,['vascular','systemic','cardiac'])]:\\n    fam=sorted(['cardiac','systemic','vascular']); n=3; ph=bt%n; step=1 if tk%2 else -1\\n    got=[fam[(ph+step*i)%n] for i in range(n)]\\n    print(qid,bt,tk,got,got==exp)\\nr=json.load(open('data/query_facets.json'))\\nprint('public bytes',_request_byte_total(r,r['facets']),'cycle',_family_cycle(r,r['facets']))\\n\\\"\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01DHR1FJZRob2aDRb7WncWew",
+    "name": "bash",
+    "content": "seeded_post_pci_counterfactual_a 3369 7 ['cardiac', 'systemic', 'vascular'] True\nseeded_post_pci_counterfactual_b 3370 8 ['systemic', 'cardiac', 'vascular'] True\nseeded_post_pci_counterfactual_c 3371 10 ['vascular', 'systemic', 'cardiac'] True\npublic bytes 921 cycle ['cardiac', 'vascular', 'systemic']"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01JHSLejdsHqqmAXLXtjbjDY",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 -c \\\"\\nimport json,unicodedata,re\\ndef n(t):\\n    t=unicodedata.normalize('NFKC',str(t)).lower(); return re.sub(r'\\\\s+',' ',t).strip()\\nr=json.load(open('data/query_facets.json')); f=r['facets']\\nqi=n(r['query_id']); fa={k:n(v) for k,v in f.items()}\\nprint('qid',len(qi.encode()))\\nfor k,v in fa.items(): print(k,len(v.encode()))\\ntot=sum(len(v.encode()) for v in fa.values())\\nprint('facet sum',tot, tot%3)\\nprint('facet space-join',len(' '.join(fa[k] for k in sorted(fa)).encode())%3)\\nprint('qid+facets sum',(len(qi.encode())+tot)%3)\\nprint('qid+facets join',len(' '.join([qi]+[fa[k] for k in sorted(fa)]).encode())%3)\\nprint('concat nosep',(len(qi.encode())+tot)%3)\\nprint('rawjson',len(open('data/query_facets.json','rb').read())%3)\\n\\\"\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01JHSLejdsHqqmAXLXtjbjDY",
+    "name": "bash",
+    "content": "qid 27\ncardiac 314\nvascular 285\nsystemic 292\nfacet sum 891 0\nfacet space-join 2\nqid+facets sum 0\nqid+facets join 0\nconcat nosep 0\nrawjson 2"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01PMzV1TUo8PjYv6rd4LLRtH",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && (nohup python3 -m src.cli --artifact-root data --request data/query_facets.json > /tmp/o3.json 2>/tmp/o3.err &); sleep 140; cat /tmp/o3.json; cat /tmp/o3.err\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01PMzV1TUo8PjYv6rd4LLRtH",
+    "name": "bash",
+    "content": "{\"ok\": false, \"error\": \"tool bash crashed: Command '['docker', 'exec', '-u', 'ubuntu', '-w', '/workspace/target', 'harbor-cpu-ml-engineering-post-pci-clinical-case-retrieval-drift-run', 'bash', '-c', 'cd /workspace/target && (nohup python3 -m \"}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01LUXVwVUaWK7RBazMJkBeaU",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"sleep 30; cd /workspace/target && python3 -c \\\"\\nimport json;d=json.load(open('/tmp/o3.json'));print([r['source'] for r in d['results']]);print(d['pmcids'])\\\"\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01LUXVwVUaWK7RBazMJkBeaU",
+    "name": "bash",
+    "content": "['cardiac', 'vascular', 'systemic', 'cardiac', 'vascular', 'systemic', 'cardiac', 'vascular', 'systemic', 'cardiac', 'vascular', 'systemic']\n['PMC11462448', 'PMC7481573', 'PMC7804355', 'PMC4980526', 'PMC6586101', 'PMC5420918', 'PMC10602372', 'PMC3350230', 'PMC3880180', 'PMC10715972', 'PMC11585472', 'PMC9289430']"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01HSr1Zv21UfD9j4FVGQrLdf",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 - <<'PYEOF'\\np='src/ranker.py'\\ns=open(p).read()\\ns=s.replace('''def _view_ranks(documents: list[str], query: str, **params: Any) -> list[int]:\\n    \\\"\\\"\\\"Return 1-based within-view rank position for each document.\\\"\\\"\\\"\\n    vectorizer = TfidfVectorizer(**params)\\n    matrix = vectorizer.fit_transform(documents)\\n    query_vector = vectorizer.transform([query])\\n    scores = linear_kernel(query_vector, matrix).ravel()\\n    order = sorted(range(len(documents)), key=lambda i: (-float(scores[i]), i))''',\\n'''def _view_ranks(documents: list[str], query: str, keys: list[str], **params: Any) -> list[int]:\\n    \\\"\\\"\\\"Return 1-based within-view rank position for each document.\\n\\n    Ties break on the stable ``record_key`` so that landing row order and\\n    manifest entry order cannot influence within-view ranking.\\n    \\\"\\\"\\\"\\n    vectorizer = TfidfVectorizer(**params)\\n    matrix = vectorizer.fit_transform(documents)\\n    query_vector = vectorizer.transform([query])\\n    scores = linear_kernel(query_vector, matrix).ravel()\\n    order = sorted(range(len(documents)), key=lambda i: (-float(scores[i]), keys[i]))''')\\ns=s.replace('''    documents = [document_text(row) for row in rows]\\n    ranks_a = _view_ranks(documents, query, ngram_range''',\\n'''    rows = sorted(rows, key=lambda r: str(r.get(\\\"record_key\\\", \\\"\\\")))\\n    documents = [document_text(row) for row in rows]\\n    keys = [str(row.get(\\\"record_key\\\", \\\"\\\")) for row in rows]\\n    ranks_a = _view_ranks(documents, query, keys, ngram_range''')\\ns=s.replace('_view_ranks(documents, query, analyzer=','_view_ranks(documents, query, keys, analyzer=')\\ns=s.replace('item[\\\"_ranks\\\"][1], item[\\\"pmcid\\\"]))','item[\\\"_ranks\\\"][1], item[\\\"record_key\\\"], item[\\\"pmcid\\\"]))')\\nopen(p,'w').write(s)\\nPYEOF\\ngrep -n \\\"_view_ranks\\\\|sorted(rows\\\\|_ranks\\\\\\\"\\\\]\\\\[1\\\\]\\\" src/ranker.py\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01HSr1Zv21UfD9j4FVGQrLdf",
+    "name": "bash",
+    "content": "30:def _view_ranks(documents: list[str], query: str, keys: list[str], **params: Any) -> list[int]:\n48:    rows = sorted(rows, key=lambda r: str(r.get(\"record_key\", \"\")))\n51:    ranks_a = _view_ranks(documents, query, keys, ngram_range=(1, 2), min_df=2, max_df=0.98, sublinear_tf=True)\n52:    ranks_b = _view_ranks(documents, query, keys, analyzer=\"char_wb\", ngram_range=(3, 5), min_df=2, sublinear_tf=True)\n63:    scored.sort(key=lambda item: (-item[\"score\"], item[\"_ranks\"][0], item[\"_ranks\"][1], item[\"record_key\"], item[\"pmcid\"]))"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01MzRqLZxQ5EMgZfMR4JYYPd",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && (nohup python3 -m src.cli --artifact-root data --request data/query_facets.json > /tmp/o4.json 2>/tmp/o4.err &); sleep 150; echo done\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01MzRqLZxQ5EMgZfMR4JYYPd",
+    "name": "bash",
+    "content": "{\"ok\": false, \"error\": \"tool bash crashed: Command '['docker', 'exec', '-u', 'ubuntu', '-w', '/workspace/target', 'harbor-cpu-ml-engineering-post-pci-clinical-case-retrieval-drift-run', 'bash', '-c', 'cd /workspace/target && (nohup python3 -m \"}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01XpQqjUsML7x81cGte9qDC5",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"sleep 30; cd /workspace/target && diff <(python3 -c \\\"import json;print(json.load(open('/tmp/o3.json'))['pmcids'])\\\") <(python3 -c \\\"import json;print(json.load(open('/tmp/o4.json'))['pmcids'])\\\") && echo SAME; cat /tmp/o4.err\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01XpQqjUsML7x81cGte9qDC5",
+    "name": "bash",
+    "content": "SAME"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01EALEgkfcZZ9JqEKDuHNzFW",
+        "type": "function",
+        "function": {
+          "name": "write_file",
+          "arguments": "{\"path\": \"/tmp/cf.py\", \"content\": \"import json, sys, shutil, random, os, subprocess\\nfrom pathlib import Path\\nsys.path.insert(0,'/workspace/target')\\nsrc=Path('/workspace/target/data')\\nbase=Path('/tmp/cfroot')\\nif base.exists(): shutil.rmtree(base)\\nshutil.copytree(src, base)\\n# reorder manifest, shuffle rows, strip landing pmcid, rewrite final_diagnosis, add noise file\\nm=json.loads((base/'source_manifest.json').read_text())\\nm['files']=list(reversed(m['files']))\\n(base/'source_manifest.json').write_text(json.dumps(m))\\nrnd=random.Random(7)\\nfor d in ['cardiac','vascular','systemic']:\\n    p=base/'cases'/f'{d}_cases.jsonl'\\n    rows=[json.loads(l) for l in p.read_text().splitlines() if l.strip()]\\n    rnd.shuffle(rows)\\n    for r in rows:\\n        r.pop('pmcid',None)\\n        r['final_diagnosis']='REDACTED_POST_ADJUDICATION'\\n        r['domain_hits']={'cardiac':99,'vascular':99,'systemic':99}\\n        r['journal']='ZZZ'\\n    p.write_text(\\\"\\\\n\\\".join(json.dumps(r) for r in rows))\\n(base/'cases'/'extra_noise.jsonl').write_text((base/'cases'/'cardiac_cases.jsonl').read_text())\\nout=subprocess.run([sys.executable,'-m','src.cli','--artifact-root',str(base),'--request',str(src/'query_facets.json')],cwd='/workspace/target',capture_output=True,text=True)\\nprint(out.stderr[-2000:])\\nprint(out.stdout)\\n\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01EALEgkfcZZ9JqEKDuHNzFW",
+    "name": "write_file",
+    "content": "{\"ok\": true, \"wrote\": \"/tmp/cf.py\", \"bytes\": 1254}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_0149t8oMBTHdFdksk5Znsv3A",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && (nohup python3 /tmp/cf.py > /tmp/cf.out 2>&1 &); sleep 160; echo ok\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_0149t8oMBTHdFdksk5Znsv3A",
+    "name": "bash",
+    "content": "{\"ok\": false, \"error\": \"tool bash crashed: Command '['docker', 'exec', '-u', 'ubuntu', '-w', '/workspace/target', 'harbor-cpu-ml-engineering-post-pci-clinical-case-retrieval-drift-run', 'bash', '-c', 'cd /workspace/target && (nohup python3 /tm\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01DM29H3vnDCbsfFjzNhmDvF",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"sleep 30; cd /workspace/target && python3 -c \\\"\\nimport json;t=open('/tmp/cf.out').read().strip().splitlines()[-1];d=json.loads(t);print(d['corpus_count'],d['domain_counts']);print(d['pmcids'])\\nb=json.load(open('/tmp/o4.json'));print(b['pmcids']==d['pmcids'], [r['score'] for r in b['results']]==[r['score'] for r in d['results']])\\\"\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01DM29H3vnDCbsfFjzNhmDvF",
+    "name": "bash",
+    "content": "1500 {'cardiac': 500, 'systemic': 500, 'vascular': 500}\n['PMC11462448', 'PMC7481573', 'PMC7804355', 'PMC4980526', 'PMC6586101', 'PMC5420918', 'PMC10602372', 'PMC3350230', 'PMC3880180', 'PMC10715972', 'PMC11585472', 'PMC9289430']\nTrue True"
+  },
+  {
+    "role": "assistant",
+    "content": "Fully invariant under all counterfactuals. Now the two shadow probes.",
+    "tool_calls": [
+      {
+        "id": "toolu_01Meghijd7TdwTWH3MajfPt3",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 env_cli.py shadow.challenge --probe provenance\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01Meghijd7TdwTWH3MajfPt3",
+    "name": "bash",
+    "content": "{\n  \"dimensions\": [\n    \"panel_identity_or_order\"\n  ],\n  \"disclosure\": \"coarse mismatch magnitude only; scenario identities and expected PMCIDs withheld\",\n  \"drift_bucket\": \"9+\",\n  \"next\": \"shadow.challenge\",\n  \"ok\": true,\n  \"op\": \"shadow.challenge\",\n  \"probe\": \"provenance\",\n  \"remaining\": 1,\n  \"status\": \"drift\"\n}"
+  },
+  {
+    "role": "assistant",
+    "content": "[no tool call this turn]"
+  },
+  {
+    "role": "user",
+    "content": "Your previous turn was cut off at the output-token limit before it made a tool call. Be concise and reply with exactly one bash / write_file / finish tool call now."
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01Cgyo9AnXZj7FxMChX3JKW1",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 env_cli.py shadow.challenge --probe allocator\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01Cgyo9AnXZj7FxMChX3JKW1",
+    "name": "bash",
+    "content": "{\n  \"dimensions\": [\n    \"panel_identity_or_order\"\n  ],\n  \"disclosure\": \"coarse mismatch magnitude only; scenario identities and expected PMCIDs withheld\",\n  \"drift_bucket\": \"9+\",\n  \"next\": \"deploy.final\",\n  \"ok\": true,\n  \"op\": \"shadow.challenge\",\n  \"probe\": \"allocator\",\n  \"remaining\": 0,\n  \"status\": \"drift\"\n}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01NK7Yq2WqVSMso97WukDoMB",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && (nohup python3 -m unittest tests.test_visible -v > /tmp/tv.out 2>&1 &); sleep 150; echo ok\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01NK7Yq2WqVSMso97WukDoMB",
+    "name": "bash",
+    "content": "{\"ok\": false, \"error\": \"tool bash crashed: Command '['docker', 'exec', '-u', 'ubuntu', '-w', '/workspace/target', 'harbor-cpu-ml-engineering-post-pci-clinical-case-retrieval-drift-run', 'bash', '-c', 'cd /workspace/target && (nohup python3 -m \"}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_014cbQsbZDEh47BzCcu9oFUM",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"sleep 20; cat /tmp/tv.out; cd /workspace/target && python3 env_cli.py status\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_014cbQsbZDEh47BzCcu9oFUM",
+    "name": "bash",
+    "content": "test_public_request_has_operational_shape (tests.test_visible.VisibleContractTest.test_public_request_has_operational_shape) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 5.182s\n\nOK\n{\n  \"candidate_hash\": \"16091942dce9c66af794\",\n  \"challenge_remaining\": 0,\n  \"next\": \"deploy.final\",\n  \"ok\": true,\n  \"op\": \"status\",\n  \"recovery_locked\": false,\n  \"snapshot_generation\": 2,\n  \"submitted\": false,\n  \"validate_remaining\": 1\n}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01HRjrePU2hgn4jU9Dn5urS1",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && cat > /tmp/tk.py <<'EOF'\\nimport json,sys,subprocess,tempfile,os\\nfrom collections import Counter\\nbase=json.load(open('data/query_facets.json'))\\nfor tk in [1,5,7,8,10,12,20]:\\n    r=dict(base); r['top_k']=tk\\n    p=tempfile.mktemp(suffix='.json'); open(p,'w').write(json.dumps(r))\\n    o=subprocess.run([sys.executable,'-m','src.cli','--artifact-root','data','--request',p],capture_output=True,text=True)\\n    d=json.loads(o.stdout)\\n    c=Counter(x['source'] for x in d['results'])\\n    print(tk,len(d['results']),dict(c),max(c.values())-min(c.values()) if len(c)==3 else 'NA',[x['source'] for x in d['results']][:4],flush=True)\\nEOF\\n(nohup python3 /tmp/tk.py > /tmp/tk.out 2>&1 &); sleep 170; echo ok\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01HRjrePU2hgn4jU9Dn5urS1",
+    "name": "bash",
+    "content": "{\"ok\": false, \"error\": \"tool bash crashed: Command '['docker', 'exec', '-u', 'ubuntu', '-w', '/workspace/target', 'harbor-cpu-ml-engineering-post-pci-clinical-case-retrieval-drift-run', 'bash', '-c', \\\"cd /workspace/target && cat > /tmp/tk.py <\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_012fs4xMZGFyy1y73DD59TK4",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"sleep 180; cat /tmp/tk.out\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_012fs4xMZGFyy1y73DD59TK4",
+    "name": "bash",
+    "content": "{\"ok\": false, \"error\": \"tool bash crashed: Command '['docker', 'exec', '-u', 'ubuntu', '-w', '/workspace/target', 'harbor-cpu-ml-engineering-post-pci-clinical-case-retrieval-drift-run', 'bash', '-c', 'sleep 180; cat /tmp/tk.out']' timed out af\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01UCTN65vgCzc4Rb7Sjru1tu",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"sleep 120; cat /tmp/tk.out\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01UCTN65vgCzc4Rb7Sjru1tu",
+    "name": "bash",
+    "content": "{\"ok\": false, \"error\": \"tool bash crashed: Command '['docker', 'exec', '-u', 'ubuntu', '-w', '/workspace/target', 'harbor-cpu-ml-engineering-post-pci-clinical-case-retrieval-drift-run', 'bash', '-c', 'sleep 120; cat /tmp/tk.out']' timed out af\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01WSTeqFHyuCyEPHNG1uvMVK",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cat /tmp/tk.out\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01WSTeqFHyuCyEPHNG1uvMVK",
+    "name": "bash",
+    "content": "1 1 {'cardiac': 1} NA ['cardiac']\n5 5 {'cardiac': 2, 'systemic': 2, 'vascular': 1} 1 ['cardiac', 'systemic', 'vascular', 'cardiac']\n7 7 {'cardiac': 3, 'systemic': 2, 'vascular': 2} 1 ['cardiac', 'systemic', 'vascular', 'cardiac']\n8 8 {'cardiac': 3, 'vascular': 3, 'systemic': 2} 1 ['cardiac', 'vascular', 'systemic', 'cardiac']\n10 10 {'cardiac': 4, 'vascular': 3, 'systemic': 3} 1 ['cardiac', 'vascular', 'systemic', 'cardiac']\n12 12 {'cardiac': 4, 'vascular': 4, 'systemic': 4} 0 ['cardiac', 'vascular', 'systemic', 'cardiac']\n20 20 {'cardiac': 7, 'vascular': 7, 'systemic': 6} 1 ['cardiac', 'vascular', 'systemic', 'cardiac']"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01TsJLVDRaNwrVU44Nkuy7Z5",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 env_cli.py deploy.final && python3 env_cli.py validate.final\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01TsJLVDRaNwrVU44Nkuy7Z5",
+    "name": "bash",
+    "content": "{\n  \"candidate_hash\": \"d34487b37e9521e92ad3\",\n  \"generation\": 3,\n  \"next\": \"validate.final\",\n  \"ok\": true,\n  \"op\": \"deploy.final\"\n}\n{\n  \"next\": \"deploy.final\",\n  \"ok\": true,\n  \"op\": \"validate.final\",\n  \"reason\": \"hidden_panel_contract\",\n  \"remaining\": 0,\n  \"status\": \"dirty\"\n}"
+  },
+  {
+    "role": "assistant",
+    "content": "[no tool call this turn]"
+  },
+  {
+    "role": "user",
+    "content": "Your previous turn was cut off at the output-token limit before it made a tool call. Be concise and reply with exactly one bash / write_file / finish tool call now."
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01Q2uFgVr5w8wGgbeA3tsGM3",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 env_cli.py status\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01Q2uFgVr5w8wGgbeA3tsGM3",
+    "name": "bash",
+    "content": "{\n  \"candidate_hash\": \"d34487b37e9521e92ad3\",\n  \"challenge_remaining\": 0,\n  \"next\": \"deploy.final\",\n  \"ok\": true,\n  \"op\": \"status\",\n  \"recovery_locked\": false,\n  \"snapshot_generation\": 3,\n  \"submitted\": false,\n  \"validate_remaining\": 0\n}"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01KJ3BWna5jRM4MuvkHV8UHT",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 -c \\\"\\nimport json,re,unicodedata\\ndef n(t):\\n    t=unicodedata.normalize('NFKC',str(t)).lower(); return re.sub(r'\\\\s+',' ',t).strip()\\nr=json.load(open('data/query_facets.json')); f=r['facets']\\nq=n(r['query_id']); fs={k:n(v) for k,v in f.items()}\\ntot=sum(len(v.encode()) for v in fs.values())\\nprint('facets',tot, tot%3, 'plus qid',(tot+27)%3)\\ntry:\\n    import pypdf\\n    t=''.join(p.extract_text() for p in pypdf.PdfReader('data/patient_case.pdf').pages)\\nexcept Exception as e:\\n    t=''; print('pdferr',e)\\npn=n(t); print('pdfchars',len(t),'norm bytes',len(pn.encode()))\\nfor label,v in [('f+pdf',tot+len(pn.encode())),('f+q+pdf',tot+27+len(pn.encode())),('f+q+pdf+3sep',tot+27+len(pn.encode())+3)]:\\n    print(label,v,v%3)\\n\\\"\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01KJ3BWna5jRM4MuvkHV8UHT",
+    "name": "bash",
+    "content": "facets 891 0 plus qid 0\npdfchars 2368 norm bytes 2367\nf+pdf 3258 0\nf+q+pdf 3285 0\nf+q+pdf+3sep 3288 0"
+  },
+  {
+    "role": "assistant",
+    "content": "[no tool call this turn]"
+  },
+  {
+    "role": "user",
+    "content": "Your previous turn was cut off at the output-token limit before it made a tool call. Be concise and reply with exactly one bash / write_file / finish tool call now."
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "toolu_01THm6Wmaer68WpKjzrMz7ax",
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "arguments": "{\"cmd\": \"cd /workspace/target && python3 env_cli.py shadow.replay; python3 env_cli.py cutover.check\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "toolu_01THm6Wmaer68WpKjzrMz7ax",
+    "name": "bash",
+    "content": "{\n  \"error\": \"out_of_order\",\n  \"expected\": \"deploy.final\",\n  \"ok\": false,\n  \"op\": \"shadow.replay\"\n}\n{\n  \"error\": \"out_of_order\",\n  \"expected\": \"deploy.final\",\n  \"ok\": false,\n  \"op\": \"cutover.check\"\n}"
+  },
+  {
+    "role": "assistant",
+    "content": "[no tool call this turn]"
+  },
+  {
+    "role": "user",
+    "content": "Your previous turn was cut off at the output-token limit before it made a tool call. Be concise and reply with exactly one bash / write_file / finish tool call now."
+  }
+]

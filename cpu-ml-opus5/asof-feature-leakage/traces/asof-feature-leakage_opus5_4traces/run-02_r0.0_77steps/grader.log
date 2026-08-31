@@ -1,0 +1,16 @@
+Final score: 0.0
+{
+  "reward": 0.0,
+  "gate_walk_ok": false,
+  "forced_recovery_ok": true,
+  "depth_ok": true,
+  "terminal_correct": false,
+  "n_actions": 66,
+  "gate_reason": "missing_gate_progress:6/8",
+  "depth_reason": "ok",
+  "terminal_reason": "terminal_value_mismatch",
+  "probe": {
+    "healthy": false,
+    "reason": "terminal_value_mismatch"
+  }
+}

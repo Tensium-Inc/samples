@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "release": "R10",
+  "effective_date": "2026-08-12",
+  "expected_total_rows": 1500,
+  "expected_distinct_pmcids": 1500,
+  "files": [
+    {
+      "domain": "cardiac",
+      "path": "cases/cardiac_cases.jsonl",
+      "active": true,
+      "rows": 500,
+      "sha256": "0a6a66d72c65f12ac6abe5a10085b33ebf515ec1df54b753c092a033f930ccce"
+    },
+    {
+      "domain": "vascular",
+      "path": "cases/vascular_cases.jsonl",
+      "active": true,
+      "rows": 500,
+      "sha256": "8ff88bdbcd79536c923c039253df0472ac6f2c1e09a697ce3ed0647be4fd8d8b"
+    },
+    {
+      "domain": "systemic",
+      "path": "cases/systemic_cases.jsonl",
+      "active": true,
+      "rows": 500,
+      "sha256": "552c8cf71017b1bf616273b419acc113b5714402146cf94e1b42f4c617e2df3c"
+    }
+  ],
+  "identity_registry": "release_registry.jsonl",
+  "identity_key": "record_key"
+}

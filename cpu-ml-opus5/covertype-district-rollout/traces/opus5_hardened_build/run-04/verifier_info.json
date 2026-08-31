@@ -1,0 +1,55 @@
+{
+  "reward": 0.67,
+  "info": {
+    "strict_pass": false,
+    "terminal_correct": false,
+    "gate_walk_ok": true,
+    "forced_recovery_ok": true,
+    "recoveries": {
+      "E_SERVE_412": true
+    },
+    "depth_ok": true,
+    "depth": {
+      "accepted": 18,
+      "observations": 6,
+      "observation_kinds": 3
+    },
+    "partial_components": {
+      "started": 0.05,
+      "gate_walk": 0.1,
+      "recovered_E_SERVE_412": 0.2,
+      "depth": 0.05,
+      "moved_a_class": 0.15,
+      "bars_cleared": 0.12
+    },
+    "walk_seen": [
+      "reproduce",
+      "deploy",
+      "diagnostics.read",
+      "recovery.apply",
+      "validate",
+      "promote",
+      "canary.start",
+      "canary.read",
+      "cutover.commit",
+      "submit"
+    ],
+    "required_walk": [
+      "reproduce",
+      "deploy",
+      "diagnostics.read",
+      "recovery.apply",
+      "validate",
+      "promote",
+      "canary.start",
+      "canary.read",
+      "cutover.commit",
+      "submit"
+    ],
+    "accepted_actions": 18,
+    "rejected_actions": 3,
+    "reasons": [
+      "the promoted candidate did not clear both bars"
+    ]
+  }
+}

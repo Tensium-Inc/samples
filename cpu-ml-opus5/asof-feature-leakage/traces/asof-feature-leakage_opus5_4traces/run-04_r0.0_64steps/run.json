@@ -1,0 +1,27 @@
+{
+  "run": 1,
+  "container": "harbor-cpu-ml-engineering-asof-feature-leakage-run",
+  "reward": 0.0,
+  "reason": "",
+  "grader_exit": 0,
+  "net": {},
+  "drive": {
+    "steps": 64,
+    "tool_calls": 58,
+    "stop": "time budget exhausted",
+    "wall_sec": 3608.6,
+    "tokens": {
+      "in": 126,
+      "out": 261562,
+      "cache_read": 1504583,
+      "cache_write": 43881
+    },
+    "est_cost_usd": 7.56622775,
+    "counts": {
+      "bash": 55,
+      "write_file": 3,
+      "finish": 0,
+      "other": 0
+    }
+  }
+}

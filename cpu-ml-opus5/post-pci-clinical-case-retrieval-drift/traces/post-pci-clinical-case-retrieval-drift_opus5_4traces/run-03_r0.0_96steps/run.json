@@ -1,0 +1,27 @@
+{
+  "run": 1,
+  "container": "harbor-cpu-ml-engineering-post-pci-clinical-case-retrieval-drift-run",
+  "reward": 0.0,
+  "reason": "",
+  "grader_exit": 0,
+  "net": {},
+  "drive": {
+    "steps": 96,
+    "tool_calls": 96,
+    "stop": "time budget exhausted",
+    "wall_sec": 5433.2,
+    "tokens": {
+      "in": 190,
+      "out": 146725,
+      "cache_read": 3975238,
+      "cache_write": 66556
+    },
+    "est_cost_usd": 6.072669,
+    "counts": {
+      "bash": 80,
+      "write_file": 16,
+      "finish": 0,
+      "other": 0
+    }
+  }
+}

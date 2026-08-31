@@ -1,0 +1,25 @@
+{
+  "source": "UCI Forest Covertype (Roosevelt National Forest, US Forest Service)",
+  "row": "one 30m x 30m forest cell",
+  "columns": {
+    "elevation": "quantitative terrain measurement",
+    "aspect": "quantitative terrain measurement",
+    "slope": "quantitative terrain measurement",
+    "horizontal_distance_to_hydrology": "quantitative terrain measurement",
+    "vertical_distance_to_hydrology": "quantitative terrain measurement",
+    "horizontal_distance_to_roadways": "quantitative terrain measurement",
+    "hillshade_9am": "quantitative terrain measurement",
+    "hillshade_noon": "quantitative terrain measurement",
+    "hillshade_3pm": "quantitative terrain measurement",
+    "horizontal_distance_to_fire_points": "quantitative terrain measurement",
+    "wilderness_area": "which of the four wilderness areas the cell sits in",
+    "soil_type": "USFS soil-type code (1-40)",
+    "cover_type": "label: dominant tree cover class (1-7)"
+  },
+  "n_rows": 30001,
+  "areas_present": [
+    "comanche_peak",
+    "neota",
+    "rawah"
+  ]
+}

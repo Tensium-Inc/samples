@@ -1,0 +1,23 @@
+{"accepted": true, "detail": {"what": "inspect"}, "op": "observe", "ts": "2026-08-11T13:20:13Z"}
+{"accepted": true, "detail": {"what": "profile"}, "op": "observe", "ts": "2026-08-11T13:20:43Z"}
+{"accepted": true, "detail": {"what": "sample_records"}, "op": "observe", "ts": "2026-08-11T13:20:43Z"}
+{"accepted": true, "detail": {"fingerprint": "032ce0e78da4a65e"}, "op": "reproduce", "ts": "2026-08-11T13:21:39Z"}
+{"accepted": true, "detail": {"fingerprint": "032ce0e78da4a65e", "has_model": true, "model_bytes": 6534609, "skipped_entries": []}, "op": "deploy", "ts": "2026-08-11T13:22:11Z"}
+{"accepted": true, "detail": {"clean": false, "fingerprint": "032ce0e78da4a65e", "phase": 1}, "op": "validate", "ts": "2026-08-11T13:22:17Z"}
+{"accepted": false, "detail": {"reason": "nothing to diagnose; serving is not in a failed state"}, "op": "diagnostics.read", "ts": "2026-08-11T13:22:21Z"}
+{"accepted": true, "detail": {"fingerprint": "866adad1cc7a908c", "has_model": true, "model_bytes": 6534625, "skipped_entries": []}, "op": "deploy", "ts": "2026-08-11T13:26:05Z"}
+{"accepted": false, "detail": {"failure": "E_SERVE_412"}, "op": "validate", "ts": "2026-08-11T13:26:09Z"}
+{"accepted": true, "detail": {"failure": "E_SERVE_412"}, "op": "diagnostics.read", "ts": "2026-08-11T13:26:14Z"}
+{"accepted": true, "detail": {"failure": "E_SERVE_412", "family": "cache_rebuild", "matched": true}, "op": "recovery.apply", "ts": "2026-08-11T13:26:19Z"}
+{"accepted": true, "detail": {"clean": false, "fingerprint": "866adad1cc7a908c", "phase": 2}, "op": "validate", "ts": "2026-08-11T13:26:25Z"}
+{"accepted": true, "detail": {"fingerprint": "007eb9b1cd2be823", "has_model": true, "model_bytes": 6534203, "skipped_entries": []}, "op": "deploy", "ts": "2026-08-11T13:27:35Z"}
+{"accepted": true, "detail": {"clean": false, "fingerprint": "007eb9b1cd2be823", "phase": 2}, "op": "validate", "ts": "2026-08-11T13:27:41Z"}
+{"accepted": true, "detail": {"fingerprint": "e07ba7f7769bc2d6", "has_model": true, "model_bytes": 6534625, "skipped_entries": []}, "op": "deploy", "ts": "2026-08-11T13:28:46Z"}
+{"accepted": true, "detail": {"clean": false, "fingerprint": "e07ba7f7769bc2d6", "phase": 2}, "op": "validate", "ts": "2026-08-11T13:28:52Z"}
+{"accepted": true, "detail": {"fingerprint": "56ee7175744643b5", "has_model": true, "model_bytes": 6534608, "skipped_entries": []}, "op": "deploy", "ts": "2026-08-11T13:31:50Z"}
+{"accepted": false, "detail": {"reason": "validation budget exhausted for this phase"}, "op": "validate", "ts": "2026-08-11T13:31:55Z"}
+{"accepted": true, "detail": {"fingerprint": "56ee7175744643b5"}, "op": "promote", "ts": "2026-08-11T13:32:02Z"}
+{"accepted": true, "detail": {"fingerprint": "0150abab29202f73", "has_model": true, "model_bytes": 6534123, "skipped_entries": []}, "op": "deploy", "ts": "2026-08-11T13:33:00Z"}
+{"accepted": true, "detail": {"width": "narrow"}, "op": "canary.start", "ts": "2026-08-11T13:33:06Z"}
+{"accepted": true, "detail": {"cover_types_routed": "incumbent classes only", "ok": true, "rows_served": 391, "width": "narrow"}, "op": "canary.read", "ts": "2026-08-11T13:33:11Z"}
+{"accepted": true, "detail": {"fingerprint": "0150abab29202f73"}, "op": "cutover.commit", "ts": "2026-08-11T13:33:18Z"}

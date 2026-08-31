@@ -1,0 +1,46 @@
+{
+  "reward": 0.37,
+  "info": {
+    "strict_pass": false,
+    "terminal_correct": false,
+    "gate_walk_ok": false,
+    "forced_recovery_ok": false,
+    "recoveries": {
+      "E_SERVE_412": false
+    },
+    "depth_ok": true,
+    "depth": {
+      "accepted": 27,
+      "observations": 6,
+      "observation_kinds": 3
+    },
+    "partial_components": {
+      "started": 0.05,
+      "depth": 0.05,
+      "moved_a_class": 0.15,
+      "bars_cleared": 0.12
+    },
+    "walk_seen": [
+      "reproduce",
+      "deploy"
+    ],
+    "required_walk": [
+      "reproduce",
+      "deploy",
+      "diagnostics.read",
+      "recovery.apply",
+      "validate",
+      "promote",
+      "canary.start",
+      "canary.read",
+      "cutover.commit",
+      "submit"
+    ],
+    "accepted_actions": 27,
+    "rejected_actions": 45,
+    "reasons": [
+      "no terminal was frozen (the run never reached `submit`)",
+      "E_SERVE_412 never fired"
+    ]
+  }
+}

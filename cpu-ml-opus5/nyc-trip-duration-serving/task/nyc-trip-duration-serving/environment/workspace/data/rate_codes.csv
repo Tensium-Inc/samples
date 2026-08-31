@@ -1,0 +1,8 @@
+code,rate_class,fare_basis
+1,standard_rate,metered
+2,jfk,flat
+3,newark,flat
+4,nassau_westchester,metered
+5,negotiated,negotiated
+6,group_ride,metered
+99,unknown_reported,unspecified

@@ -1,0 +1,22 @@
+schema_version = "1.1"
+
+[task]
+name = "cpu-ml-engineering/nyc-trip-duration-serving"
+description = "Repair a production trip-duration serving enrichment path and drive the gated release workflow."
+keywords = ["cpu-ml-engineering", "serving", "joins", "long-horizon"]
+
+[verifier]
+timeout_sec = 1200.0
+user = "root"
+
+[agent]
+timeout_sec = 3600.0
+user = "ubuntu"
+
+[environment]
+build_timeout_sec = 3600.0
+cpus = 4
+memory_mb = 8192
+storage_mb = 10240
+gpus = 0
+allow_internet = false

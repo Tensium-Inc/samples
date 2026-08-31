@@ -1,0 +1,27 @@
+{
+  "run": 1,
+  "container": "harbor-cpu-ml-engineering-nyc-trip-duration-serving-r01-07dd",
+  "reward": 0.0,
+  "reason": "",
+  "grader_exit": 0,
+  "net": {},
+  "drive": {
+    "steps": 100,
+    "tool_calls": 98,
+    "stop": "max steps reached",
+    "wall_sec": 3840.8,
+    "tokens": {
+      "in": 200,
+      "out": 269317,
+      "cache_read": 4027456,
+      "cache_write": 77286
+    },
+    "est_cost_usd": 9.2306905,
+    "counts": {
+      "bash": 94,
+      "write_file": 4,
+      "finish": 0,
+      "other": 0
+    }
+  }
+}

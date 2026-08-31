@@ -1,0 +1,114 @@
+[
+  {
+    "artifact_variant": "canonical_with_quarantine_copy",
+    "name": "canonical_release_inventory",
+    "request": {
+      "facets": {
+        "cardiac": "After RCA CTO PCI complicated by extensive dissection, a 75-year-old woman developed abrupt refractory hypotension with elevated venous pressure. Echocardiography showed no pericardial effusion, angiography showed no free coronary perforation, and the ECG did not change.",
+        "systemic": "Sudden post-procedural hypotension did not respond to fluid or phenylephrine. Nitrate effect, vagal reaction and anaphylaxis were considered unlikely because of timing, vital signs and absent response to vasopressors and antihistamines; compare systemic shock and drug-related mimics.",
+        "vascular": "Right radial and 8 Fr right femoral access preceded persistent hypotension and a haemoglobin fall from 13.2 to 11 g/dL. Femoral angiography showed no access-site bleed; urgent CT was requested for an occult retroperitoneal or venous haemorrhagic complication."
+      },
+      "query_id": "seeded_post_pci_counterfactual_a",
+      "top_k": 7
+    },
+    "family": "baseline"
+  },
+  {
+    "artifact_variant": "redact_and_reverse",
+    "name": "post_adjudication_redaction_and_reverse",
+    "request": {
+      "facets": {
+        "cardiac": "POST PCI haemodynamic collapse after right coronary chronic total occlusion intervention with extensive dissection: BP 60/40 mmHg, raised venous pressure, tamponade-like physiology, but no effusion, no visible coronary perforation and no ECG change.",
+        "systemic": "Hypotension immediately after stent deployment was refractory to fluid and phenylephrine. Timing and absent treatment response argued against nitrate effect, vagal physiology or allergy; retrieve drug, inflammatory, endocrine and shock mimics.",
+        "vascular": "Dual-access PCI using right radial 6 Fr and right femoral 8 Fr was followed by hypotension and a haemoglobin fall. Access angiography was negative; consider concealed retroperitoneal or venous bleeding and haemorrhagic shock."
+      },
+      "query_id": "seeded_post_pci_counterfactual_b",
+      "top_k": 8
+    },
+    "family": "metadata"
+  },
+  {
+    "artifact_variant": "strip_and_rotate",
+    "name": "removed_outcome_fields_and_rotation",
+    "request": {
+      "facets": {
+        "cardiac": "Tamponade physiology without pericardial effusion after right coronary CTO stenting: refractory arterial hypotension, venous pressure elevation, extensive dissection, stable ECG and no angiographic free rupture.",
+        "systemic": "Nonresponsive peri-procedural hypotension with dizziness: fluid, vasopressor and antihistamine response absent; compare drug-induced hypotension, vagal physiology, anaphylaxis, distributive shock and systemic mimics.",
+        "vascular": "Occult bleeding differential after radial plus large-bore femoral access: haemoglobin dropped 2.2 g/dL, femoral angiography was negative, and urgent computed tomography was arranged for a possible retroperitoneal complication."
+      },
+      "query_id": "seeded_post_pci_counterfactual_c",
+      "top_k": 10
+    },
+    "family": "allocator"
+  },
+  {
+    "artifact_variant": "unicode_whitespace",
+    "name": "unicode_equivalent_serving_text",
+    "request": {
+      "facets": {
+        "cardiac": "Complex RCA CTO intervention in an older woman was complicated by dissection and an abrupt fall in blood pressure to 60/40 with raised venous pressure. No pericardial effusion, coronary perforation or new ECG change was found.",
+        "systemic": "Refractory hypotension after PCI persisted despite fluids and phenylephrine; nitrate effect, a vagal reaction and anaphylaxis were considered less likely. Compare alternative systemic and drug-related causes of peri-procedural shock.",
+        "vascular": "Persistent shock after radial and femoral arterial access occurred with a fall in haemoglobin despite negative femoral angiography. Retrieve concealed retroperitoneal, venous or other haemorrhagic complications relevant before the CT result."
+      },
+      "query_id": "seeded_post_pci_counterfactual_d",
+      "top_k": 11
+    },
+    "family": "unicode"
+  },
+  {
+    "artifact_variant": "journal_redaction_reverse",
+    "name": "display_metadata_rewrite",
+    "request": {
+      "facets": {
+        "cardiac": "Following overlapping drug-eluting stents for a proximal RCA chronic total occlusion, extensive dissection was followed by severe persistent hypotension and elevated venous pressure. Echo excluded effusion and angiography did not show free perforation.",
+        "systemic": "Abrupt hypotension during PCI remained despite volume and vasopressor treatment. Nitrates, vagal reaction and anaphylaxis lacked the expected timing or treatment response; retrieve systemic shock mimics available before outcome adjudication.",
+        "vascular": "A dual radial-femoral PCI case developed hypotension with a 2.2 g/dL haemoglobin reduction and no femoral access-site bleed on angiography. Seek occult retroperitoneal or venous bleeding and related vascular shock presentations."
+      },
+      "query_id": "seeded_post_pci_counterfactual_e",
+      "top_k": 13
+    },
+    "family": "metadata"
+  },
+  {
+    "artifact_variant": "extra_unlisted_copy",
+    "name": "additional_unlisted_landing_copy",
+    "request": {
+      "facets": {
+        "cardiac": "RCA CTO PCI with procedural dissection was followed by sudden hypotension, dizziness and high venous pressure. Tamponade was suspected, yet subcostal echo showed no effusion, angiography showed no perforation and the ECG stayed unchanged.",
+        "systemic": "Peri-procedural hypotension was resistant to fluid and phenylephrine, and antihistamines did not support an allergic mechanism. Compare drug effects, vagal physiology, anaphylaxis, distributive states and other systemic shock alternatives.",
+        "vascular": "After right radial and right femoral access, haemoglobin fell from 13.2 to 11 g/dL during persistent hypotension. Femoral angiography excluded access-site bleeding and CT was ordered to assess an occult retroperitoneal source."
+      },
+      "query_id": "seeded_post_pci_counterfactual_f",
+      "top_k": 14
+    },
+    "family": "landing_noise"
+  },
+  {
+    "artifact_variant": "provenance_projection_and_reverse",
+    "family": "provenance",
+    "name": "serving_identifier_projection",
+    "request": {
+      "facets": {
+        "cardiac": "After RCA CTO PCI complicated by extensive dissection, a 75-year-old woman developed abrupt refractory hypotension with elevated venous pressure. Echocardiography showed no pericardial effusion, angiography showed no free coronary perforation, and the ECG did not change.",
+        "systemic": "Sudden post-procedural hypotension did not respond to fluid or phenylephrine. Nitrate effect, vagal reaction and anaphylaxis were considered unlikely because of timing, vital signs and absent response to vasopressors and antihistamines; compare systemic shock and drug-related mimics.",
+        "vascular": "Right radial and 8 Fr right femoral access preceded persistent hypotension and a haemoglobin fall from 13.2 to 11 g/dL. Femoral angiography showed no access-site bleed; urgent CT was requested for an occult retroperitoneal or venous haemorrhagic complication."
+      },
+      "query_id": "seeded_post_pci_counterfactual_g",
+      "top_k": 9
+    }
+  },
+  {
+    "artifact_variant": "provenance_projection_manifest_rotate",
+    "family": "provenance",
+    "name": "identifier_projection_with_inventory_rotation",
+    "request": {
+      "facets": {
+        "cardiac": "Tamponade physiology without pericardial effusion after right coronary CTO stenting: refractory arterial hypotension, venous pressure elevation, extensive dissection, stable ECG and no angiographic free rupture.",
+        "systemic": "Nonresponsive peri-procedural hypotension with dizziness: fluid, vasopressor and antihistamine response absent; compare drug-induced hypotension, vagal physiology, anaphylaxis, distributive shock and systemic mimics.",
+        "vascular": "Occult bleeding differential after radial plus large-bore femoral access: haemoglobin dropped 2.2 g/dL, femoral angiography was negative, and urgent computed tomography was arranged for a possible retroperitoneal complication."
+      },
+      "query_id": "seeded_post_pci_counterfactual_h",
+      "top_k": 15
+    }
+  }
+]

@@ -1,0 +1,30 @@
+# Cover-type classifier — training configuration.
+#
+# Owned by the forest analytics team. The model is retrained monthly and scored on the
+# holdout carved out of the same cell table.
+
+data:
+  cells: data/covtype_cells.csv
+
+split:
+  # How the holdout is carved out of the cell table.
+  strategy: random          # random | grouped
+  group_column: wilderness_area
+  test_size: 0.25
+  seed: 0
+
+features:
+  # Which column families go into the design matrix.
+  terrain: true             # elevation, slope, aspect, hillshade, distances
+  soil_type: true           # one-hot over the 40 USFS soil codes
+  wilderness_area: true     # one-hot over the wilderness areas
+
+model:
+  max_iter: 300
+  learning_rate: 0.1
+  seed: 0
+  # Per-class weighting applied during fitting. 0.0 = unweighted.
+  class_weight_alpha: 0.0
+
+output:
+  model_path: artifacts/model.joblib

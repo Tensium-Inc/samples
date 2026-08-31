@@ -1,0 +1,158 @@
+{
+  "evidence_scope": "behavioral_release_receipts",
+  "fusion_receipts": {
+    "calibration": [
+      {
+        "release_value": 0.032266458496,
+        "view_positions": [
+          1,
+          3
+        ]
+      },
+      {
+        "release_value": 0.030017921147,
+        "view_positions": [
+          12,
+          2
+        ]
+      },
+      {
+        "release_value": 0.028258706468,
+        "view_positions": [
+          15,
+          7
+        ]
+      },
+      {
+        "release_value": 0.028309409888,
+        "view_positions": [
+          16,
+          6
+        ]
+      }
+    ],
+    "calibration_scope": "rank_positions_and_release_values_only",
+    "raw_similarity_scales": "not_exchangeable"
+  },
+  "identity_receipt": {
+    "canonical_output_id": "pmcid",
+    "display_identifier_is_not_join_authority": true,
+    "join_key": "record_key",
+    "registry": "release_registry.jsonl"
+  },
+  "lexical_fingerprints": {
+    "cardiac": {
+      "view_a": {
+        "dictionary_columns": 11375,
+        "public_anchor_position": 12,
+        "request_active_columns": 46
+      },
+      "view_b": {
+        "dictionary_columns": 33684,
+        "public_anchor_position": 2,
+        "request_active_columns": 577
+      }
+    },
+    "systemic": {
+      "view_a": {
+        "dictionary_columns": 12117,
+        "public_anchor_position": 5,
+        "request_active_columns": 29
+      },
+      "view_b": {
+        "dictionary_columns": 38723,
+        "public_anchor_position": 12,
+        "request_active_columns": 548
+      }
+    },
+    "vascular": {
+      "view_a": {
+        "dictionary_columns": 12109,
+        "public_anchor_position": 5,
+        "request_active_columns": 45
+      },
+      "view_b": {
+        "dictionary_columns": 36728,
+        "public_anchor_position": 5,
+        "request_active_columns": 495
+      }
+    }
+  },
+  "panel_allocator_receipt": {
+    "behavioral_examples": [
+      {
+        "emitted_family_prefix": [
+          "cardiac",
+          "systemic",
+          "vascular",
+          "cardiac",
+          "systemic",
+          "vascular",
+          "cardiac"
+        ],
+        "normalized_query_id": "seeded_post_pci_counterfactual_a",
+        "top_k": 7,
+        "utf8_byte_total": 3369
+      },
+      {
+        "emitted_family_prefix": [
+          "systemic",
+          "cardiac",
+          "vascular",
+          "systemic",
+          "cardiac",
+          "vascular",
+          "systemic",
+          "cardiac"
+        ],
+        "normalized_query_id": "seeded_post_pci_counterfactual_b",
+        "top_k": 8,
+        "utf8_byte_total": 3370
+      },
+      {
+        "emitted_family_prefix": [
+          "vascular",
+          "systemic",
+          "cardiac",
+          "vascular",
+          "systemic",
+          "cardiac",
+          "vascular",
+          "systemic",
+          "cardiac",
+          "vascular"
+        ],
+        "normalized_query_id": "seeded_post_pci_counterfactual_c",
+        "top_k": 10,
+        "utf8_byte_total": 3371
+      }
+    ],
+    "candidate_phase_inputs": [
+      "normalized query_id",
+      "UTF-8 byte total",
+      "active cause-family count",
+      "request size"
+    ],
+    "counterexamples": {
+      "facet_insertion_order": "rejected",
+      "manifest_entry_order": "rejected"
+    },
+    "normalization_receipt": "NFKC + lowercase + collapse whitespace",
+    "receipt_scope": "issued operationally by audit.balance after ranker validation",
+    "size_field": "top_k",
+    "strategy_family": "request-phased balanced cyclic emission with alternating direction"
+  },
+  "public_anchors": {
+    "cardiac": [
+      "PMC10715972"
+    ],
+    "systemic": [
+      "PMC7804355"
+    ],
+    "vascular": [
+      "PMC3350230"
+    ]
+  },
+  "release": "R10",
+  "schema_version": "5.0"
+}

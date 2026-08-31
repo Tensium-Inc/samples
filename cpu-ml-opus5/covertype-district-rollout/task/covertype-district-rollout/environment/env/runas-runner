@@ -1,0 +1,14 @@
+#!/bin/bash
+# Drop from root to the unprivileged runner before executing anything agent-authored.
+#
+# --regid=2002 is `runners`, NOT 2000/`envdata`. Using 2000 here hands the scoring process the
+# DATA group as its primary gid, so agent code executed during scoring can read /opt/env/hidden
+# directly -- a false accept at full reward. Keeping the runner ACCOUNT out of envdata is not
+# enough on its own, and neither is probing with `runuser -u runner` (which picks up gid 2002):
+# both look correct while the real scoring path grants the group. Probe the path that actually
+# runs, not a stand-in for it.
+#
+# --clear-groups drops supplementary groups outright; runner needs `runners` and nothing else.
+exec setpriv --reuid=2001 --regid=2002 --clear-groups --reset-env \
+  env PATH=/usr/local/bin:/usr/bin:/bin PYTHONHASHSEED=0 OMP_NUM_THREADS=2 \
+      HOME=/home/runner PYTHONDONTWRITEBYTECODE=1 "$@"

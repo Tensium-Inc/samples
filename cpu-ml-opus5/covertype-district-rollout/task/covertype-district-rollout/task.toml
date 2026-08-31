@@ -1,0 +1,32 @@
+schema_version = "1.1"
+
+# ---------------------------------------------------------------------------
+# `name` is namespaced <category>/<slug>; the deployed id is the hyphenated form
+# with no slash: cpu-ml-engineering-covertype-district-rollout.
+# ---------------------------------------------------------------------------
+[task]
+name = "cpu-ml-engineering/covertype-district-rollout"
+description = "A CPU forest-cover pipeline works everywhere it was trained and fails in a fourth district. The agent drives a gated serving loop — probe, deploy, validate against a lossy rate-limited signal, diagnose and recover an injected failure, promote, submit — and is graded on the environment-owned terminal."
+keywords = ["hud", "cpu-ml-engineering", "long-horizon", "distribution-shift", "gated-service"]
+
+[verifier]
+# The grader only reads the frozen terminal and the root-owned action log; it never runs the
+# agent's code. Root, because both live under /opt/env with envdata ownership.
+timeout_sec = 1200.0
+user = "root"
+
+[agent]
+# Long on purpose. The trajectory is many turns and each retrain is a real CPU fit; the
+# intended failure is a wrong promotion, never a truncated one.
+timeout_sec = 7200.0
+user = "ubuntu"
+
+[environment]
+build_timeout_sec = 3600.0
+cpus = 4
+memory_mb = 8192
+storage_mb = 10240
+gpus = 0
+# Everything the pipeline needs is baked into the image. The held-out district is in the
+# image too, owned root:envdata and unreadable by the agent's uid.
+allow_internet = false

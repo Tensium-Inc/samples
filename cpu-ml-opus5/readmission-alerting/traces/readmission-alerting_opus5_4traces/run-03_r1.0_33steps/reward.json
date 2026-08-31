@@ -1,0 +1,20 @@
+{
+  "reward": 1.0,
+  "detail": {
+    "gate_walk_ok": true,
+    "gate_reason": "ok",
+    "forced_recovery_ok": true,
+    "depth_ok": false,
+    "depth_reason": "too_few_observations:4<6",
+    "terminal_correct": true,
+    "terminal_reason": "published_figure_sound gap=0.0016<=tol=0.012 condition_b=0.0051<=tol=0.05",
+    "n_actions": 15,
+    "probe": {
+      "healthy": true,
+      "reason": "published_figure_sound gap=0.0016<=tol=0.012 condition_b=0.0051<=tol=0.05",
+      "recovery_ok": true,
+      "verifier_dir": "locked_0700_root"
+    },
+    "strict_pass": true
+  }
+}

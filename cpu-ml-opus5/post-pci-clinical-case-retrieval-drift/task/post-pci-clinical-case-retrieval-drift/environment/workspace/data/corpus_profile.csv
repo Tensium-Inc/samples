@@ -1,0 +1,5 @@
+file,manifest_status,rows,distinct_pmcids,first_pmcid,last_pmcid,missing_title,missing_summary,median_summary_chars
+cardiac_cases.jsonl,active,500,500,PMC10601732,PMC11986323,0,0,1000
+vascular_cases.jsonl,active,500,500,PMC8081020,PMC11365614,0,0,1000
+systemic_cases.jsonl,active,500,500,PMC10629858,PMC5629885,0,0,1000
+systemic_cases(1).jsonl,quarantine_unlisted,500,500,PMC10629858,PMC5629885,0,0,1000

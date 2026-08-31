@@ -1,0 +1,25 @@
+Final score: 1.0
+{
+  "reward": 1.0,
+  "gate_walk_ok": true,
+  "depth_ok": true,
+  "forced_recovery_ok": true,
+  "terminal": {
+    "healthy": true,
+    "reason": "behavioral_thresholds_met",
+    "agreement": {
+      "pu_borough": 1.0,
+      "pu_service_zone": 1.0,
+      "do_borough": 1.0,
+      "do_service_zone": 1.0,
+      "rate_class": 1.0,
+      "fare_basis": 1.0,
+      "pickup_hour": 1.0,
+      "pickup_dayofweek": 1.0,
+      "time_quality": 1.0
+    },
+    "max_unknown_rate_delta": 0.0,
+    "rows": 6144
+  },
+  "n_actions": 23
+}

@@ -1,0 +1,27 @@
+{
+  "run": 4,
+  "container": "harbor-cpu-ml-engineering-covertype-district-rollout-r04-07c4",
+  "reward": 0.67,
+  "reason": "",
+  "grader_exit": 0,
+  "net": {},
+  "drive": {
+    "steps": 82,
+    "tool_calls": 92,
+    "stop": "finish() called",
+    "wall_sec": 5745.5,
+    "tokens": {
+      "in": 164,
+      "out": 168483,
+      "cache_read": 2944166,
+      "cache_write": 59345
+    },
+    "est_cost_usd": 6.05588425,
+    "counts": {
+      "bash": 91,
+      "write_file": 0,
+      "finish": 1,
+      "other": 0
+    }
+  }
+}

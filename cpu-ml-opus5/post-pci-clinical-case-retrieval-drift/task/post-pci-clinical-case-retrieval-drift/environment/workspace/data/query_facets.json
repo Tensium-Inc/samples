@@ -1,0 +1,9 @@
+{
+  "query_id": "post_pci_hypotension_pre_ct",
+  "top_k": 12,
+  "facets": {
+    "cardiac": "75-year-old woman after complex right coronary CTO PCI with extensive coronary dissection developed sudden refractory hypotension, elevated venous pressure and tamponade-like physiology, but echocardiography showed no pericardial effusion, angiography showed no free coronary perforation and the ECG was unchanged.",
+    "vascular": "Dual right radial and right femoral arterial access was followed by persistent hypotension and a hemoglobin fall from 13.2 to 11 g/dL. Femoral angiography showed no access-site bleeding and urgent CT was requested to assess an occult retroperitoneal or venous hemorrhagic complication.",
+    "systemic": "Abrupt post-procedural hypotension did not respond to fluid or phenylephrine. Nitrate effect, vagal reaction and anaphylaxis were considered unlikely from timing, vital signs and absent response to vasopressors and antihistamines; retrieve systemic shock mimics and drug-related alternatives."
+  }
+}

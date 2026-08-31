@@ -1,0 +1,20 @@
+{
+  "reward": 0.0,
+  "detail": {
+    "gate_walk_ok": true,
+    "gate_reason": "ok",
+    "forced_recovery_ok": true,
+    "depth_ok": false,
+    "depth_reason": "too_few_observations:4<6",
+    "terminal_correct": false,
+    "terminal_reason": "published_figure_unsound gap=0.0420>tol=0.012 (reported=0.2947 as average_precision | reference=0.3367)",
+    "n_actions": 15,
+    "probe": {
+      "healthy": false,
+      "reason": "published_figure_unsound gap=0.0420>tol=0.012 (reported=0.2947 as average_precision | reference=0.3367)",
+      "recovery_ok": false,
+      "verifier_dir": "locked_0700_root"
+    },
+    "strict_pass": false
+  }
+}

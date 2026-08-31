@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Clinical retrieval service contract</title>
+<style>
+body{font-family:system-ui,Arial,sans-serif;max-width:960px;margin:36px auto;color:#172033;line-height:1.48}
+h1{color:#0b2545;margin-bottom:4px}h2{color:#245a86;margin-top:28px}.meta{color:#667085}
+code{background:#f2f4f7;padding:2px 5px;border-radius:4px}table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #d0d5dd;padding:8px;text-align:left}th{background:#e8eef5}.warning{border-left:4px solid #b7791f;padding:10px 14px;background:#fff8e1}
+</style></head><body>
+<h1>Clinical Evidence Retrieval Service Contract</h1><p class="meta">R10 incident copy | Effective 12 August 2026</p>
+<p>This service produces a request-sized evidence panel for a pre-outcome post-PCI review. The public incident request asks for twelve cases. This copy defines the interface and operational acceptance boundary; it intentionally does not duplicate the release ranking, identity-join, or request-phase implementation.</p>
+<h2>Inputs</h2><ul>
+<li>The release inventory is described by <code>source_manifest.json</code>.</li>
+<li>The clinical request is described by <code>query_facets.json</code> and the pre-outcome PDF.</li>
+<li>The landing snapshot may contain files or display identifiers that are not release authority.</li></ul>
+<h2>Output interface</h2>
+<p>Return JSON with <code>corpus_count</code>, <code>domain_counts</code>, <code>results</code>, <code>pmcids</code>, and <code>method</code>. Each result contains exactly <code>pmcid</code>, <code>source</code>, and a numeric <code>score</code>. Serving requests honor a positive <code>top_k</code> up to the available release inventory.</p>
+<h2>R10 release behavior</h2>
+<p>The release is balanced across the three active cause families and is request-sized. Manifest entry order, JSON facet insertion order, and a global post-allocation score sort are not allocator authority. The request phase, canonical identity join, and accepted lexical/fusion behavior are released only as gated operational receipts after recovery; this incident copy is intentionally insufficient to reconstruct the hidden terminal offline.</p>
+<h2>Operational acceptance</h2>
+<table><thead><tr><th>Property</th><th>Where evidence is obtained</th></tr></thead><tbody>
+<tr><td>Release population and landing discrepancy</td><td><code>inspect.sources</code> and <code>profile.corpus</code></td></tr>
+<tr><td>Canonical identity/provenance behavior</td><td><code>audit.provenance</code> after recovery</td></tr>
+<tr><td>Lexical index behavior and cross-view calibration</td><td><code>audit.lexical</code> then <code>audit.fusion</code></td></tr>
+<tr><td>Request-sized panel allocation</td><td><code>audit.balance</code> after ranker validation</td></tr>
+<tr><td>Limited pre-final counterfactual checks</td><td>two rate-limited <code>shadow.challenge</code> probes</td></tr>
+<tr><td>Counterfactual stability</td><td><code>shadow.replay</code></td></tr>
+</tbody></table>
+<div class="warning">A clean public smoke checks execution and shape only. Local reconstruction against the visible request cannot certify the release terminal; use the gated receipts and the limited challenge budget.</div>
+<h2>Cutover</h2><p>The candidate may be promoted only after the ordered service path, injected-failure recovery, semantic validations, both distinct challenge probes, and stable shadow replay.</p>
+</body></html>

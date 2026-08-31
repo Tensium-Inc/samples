@@ -1,0 +1,12 @@
+{
+  "salt": "asof-feature-leakage/grade/v2/holdout-split-odd",
+  "terminal_sha256": "8254f116aa3d9989022f6f20b3b21f2fff53df01012772276325fe1d5063bbd3",
+  "n_rows": 5467,
+  "graded_columns": [
+    "n_lines",
+    "n_sku",
+    "n_credit",
+    "spend_cents",
+    "days_since_last"
+  ]
+}

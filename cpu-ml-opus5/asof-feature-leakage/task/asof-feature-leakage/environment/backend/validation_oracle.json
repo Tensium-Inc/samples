@@ -1,0 +1,13 @@
+{
+  "salt": "asof-feature-leakage/validate/v4/holdout-split-even",
+  "terminal_sha256": "966859ac8e118b5415517215ff756917c3068f2d905eb3f654770db78f8a2c03",
+  "n_rows": 5235,
+  "graded_columns": [
+    "n_lines",
+    "n_sku",
+    "n_credit",
+    "spend_cents",
+    "days_since_last"
+  ],
+  "coverage": "disjoint_even_customer_holdout"
+}

@@ -1,0 +1,43 @@
+{
+  "task": "/home/runner/work/Anvil/Anvil/tasks/krisna/covertype-district-rollout",
+  "task_name": "cpu-ml-engineering/covertype-district-rollout",
+  "provider": "anthropic",
+  "model": "claude-opus-5",
+  "harness_version": "2.0",
+  "started_at": "2026-08-17T20:35:03+00:00",
+  "concurrency": 2,
+  "max_steps": 100,
+  "agent_budget_sec": 7200.0,
+  "runs": 4,
+  "rewarded_runs": 4,
+  "crashed_runs": 0,
+  "rewards": [
+    0.67,
+    0.37,
+    1.0,
+    0.67
+  ],
+  "mean": 0.6775,
+  "std": 0.2229,
+  "solved_at_0_99": 1,
+  "solve_rate": 0.25,
+  "pass_at_k_unbiased": 1.0,
+  "wilson_95": [
+    0.0456,
+    0.6994
+  ],
+  "band": {
+    "lo": 0.05,
+    "hi": 0.75,
+    "metric": "solve_rate",
+    "verdict": "IN_BAND",
+    "confidence": "insufficient_runs"
+  },
+  "tokens_total": {
+    "in": 666,
+    "out": 503984,
+    "cache_read": 10924408,
+    "cache_write": 206159
+  },
+  "est_cost_usd_total": 19.3536
+}

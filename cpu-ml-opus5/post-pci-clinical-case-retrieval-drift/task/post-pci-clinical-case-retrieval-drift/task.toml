@@ -1,0 +1,28 @@
+schema_version = "1.3"
+
+[task]
+name = "cpu-ml-engineering/post-pci-clinical-case-retrieval-drift"
+description = "Restore a CPU-only clinical case retrieval pipeline whose plausible public results drift under release-allocation, canonical-identity, and shadow counterfactuals, then drive the repaired candidate through the full gated incident lifecycle."
+keywords = ["hud", "cpu-ml-engineering", "long-horizon", "gated-ops", "information-retrieval", "tfidf", "clinical-nlp"]
+
+[verifier]
+timeout_sec = 1800.0
+user = "root"
+
+[agent]
+timeout_sec = 7200.0
+user = "ubuntu"
+
+[environment]
+build_timeout_sec = 3600.0
+cpus = 4
+memory_mb = 8192
+storage_mb = 12288
+gpus = 0
+allow_internet = false
+[environment.healthcheck]
+command = "test -S /run/post_pci_retrieval.sock"
+interval_sec = 1.0
+timeout_sec = 3.0
+start_period_sec = 2.0
+retries = 30

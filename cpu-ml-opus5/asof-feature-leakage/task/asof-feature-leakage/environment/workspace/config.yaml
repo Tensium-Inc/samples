@@ -1,0 +1,21 @@
+# Repeat-purchase pipeline contract.
+
+task:
+  name: repeat_purchase_30d
+  # Predict another non-credit order within this horizon.
+  horizon_days: 30
+
+features:
+  window_days: 90
+
+  # Infer the audit-specific rule from the gated worked examples.
+  policy_source: ops_worked_examples
+
+split:
+  # Accounts must not cross the temporal boundary.
+  strategy: temporal
+  cutoff: "2011-03-01"
+
+cache:
+  # Attribution logic changes require rebuilding this cache.
+  dir: caches

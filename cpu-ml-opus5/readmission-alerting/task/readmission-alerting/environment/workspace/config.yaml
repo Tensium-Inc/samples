@@ -1,0 +1,56 @@
+# Readmission alerting pipeline - configuration.
+#
+# The model scores each discharge and the top-scoring encounters are put on the care
+# team's follow-up list. Everything below is read by scripts/run_eval.py.
+
+dataset:
+  path: data/encounters.csv
+  target: readmitted_30d
+  id_columns: [encounter_id, patient_nbr]
+
+cohort:
+  exclude_missing_sex: true
+  require_observable_window: true
+
+features:
+  numeric:
+    - time_in_hospital
+    - num_lab_procedures
+    - num_procedures
+    - num_medications
+    - number_outpatient
+    - number_emergency
+    - number_inpatient
+    - number_diagnoses
+  categorical:
+    - race
+    - gender
+    - age
+    - change
+    - diabetesMed
+    - insulin
+  target_encoded:
+    - diag_1
+    - diag_2
+    - diag_3
+    - medical_specialty
+    - diag_triple
+  cache_path: caches/design_matrix.pkl
+
+evaluation:
+  scheme: kfold
+  n_splits: 5
+  shuffle: true
+  random_state: 0
+
+reporting:
+  policy_metric: average_precision
+  output: results/eval_report.json
+  summary_memo: caches/eval_summary.pkl
+
+model:
+  type: random_forest
+  n_estimators: 150
+  min_samples_leaf: 5
+  random_state: 0
+  n_jobs: 1
